@@ -16,8 +16,11 @@ import dask
 from dask.distributed import Client
 import os
 
-user_name = os.getcwd().split("/")[5]
-dask.config.set({"temporary-directory": f"/depot/cms/users/{user_name}/dask-temp/"})
+# print(f"os.getcwd(): {os.getcwd()}")
+# user_name = os.getcwd().split("/")[5]
+user_name = "yun79"
+# dask.config.set({"temporary-directory": f"/depot/cms/users/{user_name}/dask-temp/"})
+dask.config.set({"temporary-directory": f"/home/yun79/analysis/Zprime-Dilepton/test/"})
 global_path = os.getcwd() + "/output/"
 parser = argparse.ArgumentParser()
 # Slurm cluster IP to use. If not specified, will create a local cluster
@@ -108,14 +111,14 @@ parameters = {
     "out_path": f"{args.year}_{args.label}_{local_time}",
     # "server": "root://xrootd.rcac.purdue.edu/",
     #"server": "root://cmsxrootd.fnal.gov//",
-    "xrootd": False,
-    "server": "/mnt/hadoop/",
+    "xrootd": True,
+    "server": "root://eos.cms.rcac.purdue.edu/",
     "datasets_from": "Zprime",
     "from_das": True,
     "chunksize": int(args.chunksize),
     "maxchunks": mch,
     "save_output": True,
-    "local_cluster": local_cluster,
+    "local_cluster": True, # local_cluster
     "slurm_cluster_ip": slurm_cluster_ip,
     "client": None,
     "channel": args.channel,
@@ -173,8 +176,13 @@ def submit_job(parameters):
         "apply_to_output": partial(save_stage1_output_to_parquet, out_dir=out_dir),
     }
 
-    if parameters["channel"] == "mu" or parameters["channel"] == "el":
+    # print(f'parameters["channel"]: {parameters["channel"]}')
+    if parameters["channel"] == "el":
         from processNano.dilepton_processor import DileptonProcessor as event_processor
+    elif parameters["channel"] == "mu" :
+        from processNano.dimuon_processor import DimuonProcessor as event_processor
+    elif parameters["channel"] == "emu":
+        from processNano.emu_processor import EmuProcessor as event_processor
     elif parameters["channel"] == "eff_mu":
         from processNano.dimuon_eff_processor import (
             DimuonEffProcessor as event_processor,
@@ -193,6 +201,9 @@ def submit_job(parameters):
         chunksize=parameters["chunksize"],
         maxchunks=parameters["maxchunks"],
     )
+    
+    event_processor(**processor_args)
+    print("nano processor flag")
     try:
         run(
             parameters["samp_infos"].fileset,
@@ -203,7 +214,7 @@ def submit_job(parameters):
     except Exception as e:
         tb = traceback.format_exc()
         return "Failed: " + str(e) + " " + tb
-
+    # print("flag2")
     return "Success!"
 
 
@@ -214,24 +225,24 @@ if __name__ == "__main__":
         #     'test_file',
         # ],
         "other_mc": [
-            "WZ1L1Nu2Q",
-            "WZ3LNu",
-            "WZ2L2Q",
-            "ZZ2L2Nu",
-            "ZZ2L2Q",
-            "ZZ4L",
-            "WWinclusive",
-            "WW200to600",
-            "WW600to1200",
-            "WW1200to2500",
-            "WW2500toInf",
-            "ttbar_lep_inclusive",
+            # "WZ1L1Nu2Q",
+            # "WZ3LNu",
+            # "WZ2L2Q",
+            # "ZZ2L2Nu",
+            # "ZZ2L2Q",
+            # "ZZ4L",
+            # "WWinclusive",
+            # "WW200to600",
+            # "WW600to1200",
+            # "WW1200to2500",
+            # "WW2500toInf",
+            # "ttbar_lep_inclusive",
             "ttbar_lep_M500to800",
-            "ttbar_lep_M800to1200",
-            "ttbar_lep_M1200to1800",
-            "ttbar_lep_M1800toInf",
-            "Wantitop",
-            "tW",
+            # "ttbar_lep_M800to1200",
+            # "ttbar_lep_M1200to1800",
+            # "ttbar_lep_M1800toInf",
+            # "Wantitop",
+            # "tW",
         ],
         "dy": [
             "dy0J_M200to400",
@@ -365,8 +376,8 @@ if __name__ == "__main__":
             # if not ("ttbar" in sample or "Wantitop" in sample or "tW" in sample):
             #    continue
 
-            #if group != "other_mc":
-            #    continue
+            if group != "other_mc":
+               continue
             #if sample not in ["data_A"]:
             #    continue
             #if group != "data":

@@ -32,9 +32,9 @@ import copy
 from processNano.muons import find_dimuon, fill_muons
 from processNano.utils import bbangle
 
-from config.parameters import parameters, muon_branches, jet_branches
+from config.parameters import parameters, muon_branches, ele_branches, jet_branches
 
-class DimuonProcessor(processor.ProcessorABC):
+class EmuProcessor(processor.ProcessorABC):
     def __init__(self, **kwargs):
         self.samp_info = kwargs.pop("samp_info", None)
         do_timer = kwargs.pop("do_timer", True)
@@ -65,7 +65,7 @@ class DimuonProcessor(processor.ProcessorABC):
         self._columns = self.parameters["proc_columns"]
 
         self.regions = ["bb", "be"]
-        self.channels = ["mumu"]
+        self.channels = ["emu"]
 
         self.lumi_weights = self.samp_info.lumi_weights
 
@@ -82,7 +82,7 @@ class DimuonProcessor(processor.ProcessorABC):
         is_mc = True
         if "data" in dataset:
             is_mc = False
-        print("flag")
+
         # ------------------------------------------------------------#
         # Apply HLT, lumimask, genweights, PU weights
         # and L1 prefiring weights
@@ -102,11 +102,15 @@ class DimuonProcessor(processor.ProcessorABC):
         # Separate dataframe to keep track on weights
         # and their systematic variations
         weights = Weights(output)
+        muon_branches_local = copy.copy(muon_branches)
+        ele_branches_local = copy.copy(ele_branches)
 
         # calculate generated mass from generated particles using the coffea genParticles
+        print(f"is_mc: {is_mc}")
         if is_mc:
             genPart = df.GenPart
-            # print(f"genPart shape: {genPart.shape}")
+            print(f"genPart type: {type(genPart)}")
+            print(f"genPart: {len(genPart)}")
             genPart = genPart[
                 (
                     (abs(genPart.pdgId) == 11) | abs(genPart.pdgId)
@@ -116,47 +120,49 @@ class DimuonProcessor(processor.ProcessorABC):
             ]
 
             cut = ak.num(genPart) == 2
-            output["dimuon_mass_gen"] = cut
-            output["dimuon_pt_gen"] = cut
-            output["dimuon_eta_gen"] = cut
-            output["dimuon_phi_gen"] = cut
+            output["emu_mass_gen"] = cut
+            output["emu_pt_gen"] = cut
+            output["emu_eta_gen"] = cut
+            output["emu_phi_gen"] = cut
             genMother = genPart[cut][:, 0] + genPart[cut][:, 1]
             output.loc[
-                output["dimuon_mass_gen"] == True, ["dimuon_mass_gen"]
+                output["emu_mass_gen"] == True, ["emu_mass_gen"]
             ] = genMother.mass
             output.loc[
-                output["dimuon_pt_gen"] == True, ["dimuon_pt_gen"]
+                output["emu_pt_gen"] == True, ["emu_pt_gen"]
             ] = genMother.pt
             output.loc[
-                output["dimuon_eta_gen"] == True, ["dimuon_eta_gen"]
+                output["emu_eta_gen"] == True, ["emu_eta_gen"]
             ] = genMother.eta
             output.loc[
-                output["dimuon_phi_gen"] == True, ["dimuon_phi_gen"]
+                output["emu_phi_gen"] == True, ["emu_phi_gen"]
             ] = genMother.phi
-            output.loc[output["dimuon_mass_gen"] == False, ["dimuon_mass_gen"]] = -999.0
-            output.loc[output["dimuon_pt_gen"] == False, ["dimuon_pt_gen"]] = -999.0
-            output.loc[output["dimuon_eta_gen"] == False, ["dimuon_eta_gen"]] = -999.0
-            output.loc[output["dimuon_phi_gen"] == False, ["dimuon_phi_gen"]] = -999.0
+            output.loc[output["emu_mass_gen"] == False, ["emu_mass_gen"]] = -999.0
+            output.loc[output["emu_pt_gen"] == False, ["emu_pt_gen"]] = -999.0
+            output.loc[output["emu_eta_gen"] == False, ["emu_eta_gen"]] = -999.0
+            output.loc[output["emu_phi_gen"] == False, ["emu_phi_gen"]] = -999.0
 
         else:
-            output["dimuon_mass_gen"] = -999.0
-            output["dimuon_pt_gen"] = -999.0
-            output["dimuon_eta_gen"] = -999.0
-            output["dimuon_phi_gen"] = -999.0
+            output["emu_mass_gen"] = -999.0
+            output["emu_pt_gen"] = -999.0
+            output["emu_eta_gen"] = -999.0
+            output["emu_phi_gen"] = -999.0
 
-        output["dimuon_mass_gen"] = output["dimuon_mass_gen"].astype(float)
-        output["dimuon_pt_gen"] = output["dimuon_pt_gen"].astype(float)
-        output["dimuon_eta_gen"] = output["dimuon_eta_gen"].astype(float)
-        output["dimuon_phi_gen"] = output["dimuon_phi_gen"].astype(float)
-        # print("flag")
-        output_old = copy.deepcopy(output)
-        
+        output["emu_mass_gen"] = output["emu_mass_gen"].astype(float)
+        output["emu_pt_gen"] = output["emu_pt_gen"].astype(float)
+        output["emu_eta_gen"] = output["emu_eta_gen"].astype(float)
+        output["emu_phi_gen"] = output["emu_phi_gen"].astype(float)
+
         if is_mc:
             # For MC: Apply gen.weights, pileup weights, lumi weights,
             # L1 prefiring weights
             mask = np.ones(numevents, dtype=bool)
             genweight = df.genWeight
             weights.add_weight("genwgt", genweight)
+            print(f"dataset: {dataset}")
+            print(f"self.lumi_weights: {self.lumi_weights}")
+            print(f"type(weights): {type(weights)}")
+            print(f"self.parameters: {self.parameters}")
             weights.add_weight("lumi", self.lumi_weights[dataset])
             if self.do_pu:
                 pu_wgts = pu_evaluator(
@@ -173,15 +179,37 @@ class DimuonProcessor(processor.ProcessorABC):
                     weights.add_weight("l1prefiring_wgt", l1pfw, how="all")
                 else:
                     weights.add_weight("l1prefiring_wgt", how="dummy_vars")
+        
 
+            muon_branches_local += [
+                    "genPartFlav",
+                    "genPartIdx",
+                    "pt_gen",
+                    "eta_gen",
+                    "phi_gen",
+                    "idx",
+                ]
+            ele_branches_local += ["genPartFlav", "pt_gen", "eta_gen", "phi_gen", "idx"]
         else:
             # For Data: apply Lumi mask
-            lumi_info = LumiMask(self.parameters["lumimask_UL_mu"])
-            mask = lumi_info(df.run, df.luminosityBlock)
+            lumi_info_mu = LumiMask(self.parameters["lumimask_UL_mu"])
+            mask_mu = lumi_info_mu(df.run, df.luminosityBlock)
+            lumi_info_el = LumiMask(self.parameters["lumimask_UL_el"])
+            mask_el = lumi_info_el(df.run, df.luminosityBlock)
+            mask = mask_mu and mask_el
+        print(f"mask: {mask}")
+
         # Apply HLT to both Data and MC
 
-        hlt = ak.to_pandas(df.HLT[self.parameters["mu_hlt"]])
-        hlt = hlt[self.parameters["mu_hlt"]].sum(axis=1)
+        hlt = ak.to_pandas(df.HLT[self.parameters["mu_hlt"]+self.parameters["el_hlt"]])
+        # print(f"df.HLT: {df.HLT}")
+        # print(f'df.HLT[self.parameters["mu_hlt"]]: {df.HLT[self.parameters["mu_hlt"]]}')
+        # print(f"hlt b4: {hlt}")
+        # print(f'self.parameters["mu_hlt"]: {self.parameters["mu_hlt"]}')
+        # print(f'self.parameters["mu_hlt"]+self.parameters["el_hlt"]: {self.parameters["mu_hlt"]+self.parameters["el_hlt"]}')
+        hlt = hlt[self.parameters["mu_hlt"]+self.parameters["el_hlt"]].sum(axis=1)
+        # print(f"hlt after: {hlt}")
+        # print(f"len(hlt): {len(hlt)}")
 
         if self.timer:
             self.timer.add_checkpoint("Applied HLT and lumimask")
@@ -196,11 +224,21 @@ class DimuonProcessor(processor.ProcessorABC):
         df["Muon", "pt_raw"] = df.Muon.pt
         df["Muon", "eta_raw"] = df.Muon.eta
         df["Muon", "phi_raw"] = df.Muon.phi
+        df["Electron", "pt_raw"] = df.Electron.pt
+        df["Electron", "eta_raw"] = df.Electron.eta
+        df["Electron", "phi_raw"] = df.Electron.phi
         if is_mc:
             df["Muon", "pt_gen"] = df.Muon.matched_gen.pt
             df["Muon", "eta_gen"] = df.Muon.matched_gen.eta
             df["Muon", "phi_gen"] = df.Muon.matched_gen.phi
             df["Muon", "idx"] = df.Muon.genPartIdx
+            df["Electron", "pt_gen"] = df.Electron.matched_gen.pt
+            df["Electron", "eta_gen"] = df.Electron.matched_gen.eta
+            df["Electron", "phi_gen"] = df.Electron.matched_gen.phi
+            df["Electron", "idx"] = df.Electron.genPartIdx
+
+            
+
 
         # for ...
         if True:  # indent reserved for loop over muon pT variations
@@ -209,30 +247,20 @@ class DimuonProcessor(processor.ProcessorABC):
             # implemented in the future
 
             # --- conversion from awkward to pandas --- #
-            muon_branches_local = copy.copy(muon_branches)
-            if is_mc:
-                muon_branches_local += [
-                    "genPartFlav",
-                    "genPartIdx",
-                    "pt_gen",
-                    "eta_gen",
-                    "phi_gen",
-                    "idx",
-                ]
+            # muon selection    
             muons = ak.to_pandas(df.Muon[muon_branches_local])
-            muons_old = copy.deepcopy(muons)
-            
             if self.timer:
                 self.timer.add_checkpoint("load muon data")
             muons = muons.dropna()
             muons = muons.loc[:, ~muons.columns.duplicated()]
+
             # --------------------------------------------------------#
             # Select muons that pass pT, eta, isolation cuts,
             # muon ID and quality flags
-            # Select events with 2 OS muons, no electrons,
             # passing quality cuts and at least one good PV
+            # NOTE: do DO NOT count n muons or apply OS muon cut
             # --------------------------------------------------------#
-
+            
             # Apply event quality flag
             output["r"] = None
             output["dataset"] = dataset
@@ -247,6 +275,7 @@ class DimuonProcessor(processor.ProcessorABC):
                     axis=1
                 )
             # Define baseline muon selection (applied to pandas DF!)
+            print("flag")
             muons["selection"] = (
                 (muons.pt_raw > self.parameters["muon_pt_cut"])
                 & (abs(muons.eta_raw) < self.parameters["muon_eta_cut"])
@@ -259,48 +288,201 @@ class DimuonProcessor(processor.ProcessorABC):
                 )
                 & muons.pass_flags
             )
-            print(30*'-')
-            print(f"muons b4: \n {muons_old.to_string()}")
-            print(30*'-')
-            print(f"muons after: \n{muons.to_string()}")
-            # Count muons
+            print(f"muons: {muons.to_string()}")
+            # print(f"muons['entry']: {muons['entry']}")
+            # print(f"muons['subentry']: {muons['subentry']}")
+
+            # # Find events with at least one good primary vertex
+            # good_pv = ak.to_pandas(df.PV).npvsGood > 0
+            # # Define baseline event selection
+
+            # output["mu_event_selection"] = (
+            #     mask
+            #     & (hlt > 0)
+            #     & (flags > 0)
+            #     & good_pv
+            # )
+            print("flag2")
+            n_entries = muons.reset_index().groupby("entry")["subentry"].max()
+            print(f"muons: \n {muons.to_string()}")
+            amandeep_sort =muons.sort_values(by="pt")
+            print(50*"-")
+            print(f"amandeep_sort: \n {amandeep_sort.to_string()}")
+            print(50*"-")
+            test = muons.reset_index().sort_values(by=["entry","pt"])
+            print(f"test : \n {test.to_string()}")
+            # now remove the rows with same entries but with lower pt vals
+            # this is done by droping duplicates of entries column, but 
+            # keeping the last row, which is sorted to have the highest pt
+            print(50*"-")
+            drop_test = test.drop_duplicates(subset=['entry'], keep='last')
+            print(f"drop_test : \n {drop_test.to_string()}")
+            print(50*"-")
+            print(f"n_entries: \n {len(n_entries)}")
+            cols_to_group = muons.reset_index().columns.values.tolist()
+            cols_to_group.remove("pt")
+            print(f"cols_to_group: {cols_to_group}")
+            print(f"muons.reset_index().groupby(cols_to_group): {muons.reset_index().groupby(cols_to_group)}")
+            mupt = muons.reset_index().groupby(["entry"])["pt"].max().reset_index()
+            print(50*"-")
+            print(f"mupt: \n {mupt.to_string()}")
+            mupt = mupt.set_index("entry").sort_index()
+            print(50*"-")
+            print(f"new mupt: \n {mupt.to_string()}")
+            print(f"new mupt length: \n {len(mupt)}")
+            
             nmuons = (
                 muons[muons.selection]
                 .reset_index()
                 .groupby("entry")["subentry"]
                 .nunique()
             )
-            # Find opposite-sign muons
-            sum_charge = muons.loc[muons.selection, "charge"].groupby("entry").sum()
+            print(50*"-")
+            print(f"nmuons: \n {nmuons.to_string()}")
 
-            # Find events with at least one good primary vertex
-            good_pv = ak.to_pandas(df.PV).npvsGood > 0
+            # --------------------------------------------------------#
+            # Electron selection
+            # --------------------------------------------------------#
+            electrons = ak.to_pandas(df.Electron[ele_branches_local])
+            electrons.pt = electrons.pt_raw * (electrons.scEtOverPt + 1.0)
+            electrons.eta = electrons.eta_raw + electrons.deltaEtaSC
+            electrons = electrons.dropna()
+            electrons = electrons.loc[:, ~electrons.columns.duplicated()]
+            if is_mc:
+                electrons.loc[electrons.idx == -1, "pt_gen"] = -999.0
+                electrons.loc[electrons.idx == -1, "eta_gen"] = -999.0
+                electrons.loc[electrons.idx == -1, "phi_gen"] = -999.0
 
-            # Define baseline event selection
+            print("flag3")
+            # Apply event quality flag
+            flags = ak.to_pandas(df.Flag)
+            flags = flags[self.parameters["event_flags"]].product(axis=1)
 
-            output["two_muons"] = (nmuons == 2) | (nmuons > 2)
-            output["two_muons"] = output["two_muons"].fillna(False)
-            output["event_selection"] = (
-                mask
-                & (hlt > 0)
-                & (flags > 0)
-                & (nmuons >= 2)
-                & (abs(sum_charge) < nmuons)
-                & good_pv
+            # Define baseline muon selection (applied to pandas DF!)
+            electrons["selection"] = (
+                (electrons.pt > self.parameters["electron_pt_cut"])
+                & (abs(electrons.eta) < self.parameters["electron_eta_cut"])
+                & (electrons[self.parameters["electron_id"]] > 0)
             )
-            # print(f"muons: {muons.to_string()}")
-            print(30*'-')
-            print(f"output b4: \n {output_old.to_string()}")
-            print(30*'-')
-            print(f"output after: \n {output.to_string()}")
+
+            if dataset == "dyInclusive50":
+                electrons = electrons[electrons.genPartFlav == 15]
+            # Count electrons
+            nelectrons = (
+                electrons[electrons.selection]
+                .reset_index()
+                .groupby("entry")["subentry"]
+                .nunique()
+            )
+            if is_mc:
+                output["el_event_selection"] = mask & (hlt > 0) & (nelectrons >= 2)
+            else:
+                output["el_event_selection"] = mask & (hlt > 0) & (nelectrons >= 4)
+            print("flag4")
+
+            # joins muons and electrons as one df
+            new_mu_cols = {}
+            for col in muons.columns:
+                new_mu_cols[col] =col+"_mu"
+            muons.rename(columns=new_mu_cols, inplace=True)
+            muons = muons.reset_index()
+            muons["group_key"] = muons['entry'].astype(str) + muons['subentry'].astype(str) 
+            new_el_cols = {}
+            for col in electrons.columns:
+                new_el_cols[col] =col+"_mu"
+            electrons.rename(columns=new_el_cols, inplace=True)
+            electrons = electrons.reset_index()
+            electrons["group_key"] = electrons['entry'].astype(str) + electrons['subentry'].astype(str) 
+            print("flag5")
+            leptons = muons.join(electrons.set_index('group_key'), on='group_key', how="outer", lsuffix='_mu', rsuffix='_el')
+            leptons.set_index("group_key", inplace=True)
+            # leptons = muons.join(electrons.set_index('group_key'), on='group_key')
+            print(f"muons): {(muons.to_string())}")
+            # print(f"muons.reset_index()): {(muons.reset_index())}")
+            print(f"electrons): {(electrons.to_string())}")
+            print(f"leptons: {leptons.to_string()}")
+            
+
+            # Selection complete
             if self.timer:
-                self.timer.add_checkpoint("Selected events and muons")
+                self.timer.add_checkpoint("Selected events and electrons")
+            
+            
+
+            # # --------------------------------------------------------#
+            # # Select muons that pass pT, eta, isolation cuts,
+            # # muon ID and quality flags
+            # # Do the same with electrons
+            # # Select events with 1 muons, 1 electron, with opposite signs
+            # # passing quality cuts and at least one good PV
+            # # --------------------------------------------------------#
+
+            # # Apply event quality flag
+            # output["r"] = None
+            # output["dataset"] = dataset
+            # output["year"] = int(self.year)
+            # if dataset == "dyInclusive50":
+            #     leptons = leptons[leptons.genPartFlav == 15]
+            # flags = ak.to_pandas(df.Flag)
+            # flags = flags[self.parameters["event_flags"]].product(axis=1)
+            # leptons["pass_flags"] = True
+            # if self.parameters["muon_flags"]:
+            #     leptons["pass_flags"] = leptons[self.parameters["muon_flags"]].product(
+            #         axis=1
+            #     )
+            # # Define baseline muon selection (applied to pandas DF!)
+            
+            # leptons["selection"] = (
+            #     (leptons.pt_raw > self.parameters["muon_pt_cut"])
+            #     & (abs(leptons.eta_raw) < self.parameters["muon_eta_cut"])
+            #     & (leptons.tkRelIso < self.parameters["muon_iso_cut"])
+            #     & (leptons[self.parameters["muon_id"]] > 0)
+            #     & (leptons.dxy < self.parameters["muon_dxy"])
+            #     & (
+            #         (leptons.ptErr.values / leptons.pt.values)
+            #         < self.parameters["muon_ptErr/pt"]
+            #     )
+            #     & leptons.pass_flags
+            # )
+            # # print(f"leptons after: {leptons}")
+            # # print(f'leptons.groupby("entry")["subentry"]: {leptons.groupby("entry")["subentry"]:}')
+
+            # # Count muons
+            # nleptons = (
+            #     leptons[leptons.selection]
+            #     .reset_index()
+            #     .groupby("entry")["subentry"]
+            #     .nunique()
+            # )
+            # # print(f"leptons after2 : {leptons}")
+            # # print("flag")
+            # # Find opposite-sign muons
+            # sum_charge = leptons.loc[leptons.selection, "charge"].groupby("entry").sum()
+            # # print(f"sum_charge: {sum_charge}")
+
+            # # Find events with at least one good primary vertex
+            # good_pv = ak.to_pandas(df.PV).npvsGood > 0
+
+            # # Define baseline event selection
+
+            # output["two_muons"] = (nmuons == 2) | (nmuons > 2)
+            # output["two_muons"] = output["two_muons"].fillna(False)
+            # output["event_selection"] = (
+            #     mask
+            #     & (hlt > 0)
+            #     & (flags > 0)
+            #     & (nmuons >= 2)
+            #     & (abs(sum_charge) < nmuons)
+            #     & good_pv
+            # )
+            # if self.timer:
+            #     self.timer.add_checkpoint("Selected events and muons")
 
             # --------------------------------------------------------#
             # Initialize muon variables
             # --------------------------------------------------------#
 
-            # Find pT-leading and subleading muons
+            # Find pT-leading and subleading muon, electron pair
             muons = muons[muons.selection & (nmuons >= 2) & (abs(sum_charge) < nmuons)]
 
             if self.timer:
@@ -341,7 +523,7 @@ class DimuonProcessor(processor.ProcessorABC):
 
             if self.timer:
                 self.timer.add_checkpoint("back back angle calculation")
-            print("flag")
+
             # --------------------------------------------------------#
             # Select events with muons passing leading pT cut
             # and trigger matching
@@ -358,7 +540,6 @@ class DimuonProcessor(processor.ProcessorABC):
             # --------------------------------------------------------#
             fill_muons(self, output, mu1, mu2, is_mc, self.year, weights)
 
-        print("flag2")
         # ------------------------------------------------------------#
         # Prepare jets
         # ------------------------------------------------------------#
@@ -367,7 +548,7 @@ class DimuonProcessor(processor.ProcessorABC):
         # ------------------------------------------------------------#
         # Apply JEC, get JEC and JER variations
         # ------------------------------------------------------------#
-        print("flag3")
+
         jets = df.Jet
         # self.do_jec = False
 
@@ -391,7 +572,7 @@ class DimuonProcessor(processor.ProcessorABC):
         output.columns = pd.MultiIndex.from_product(
             [output.columns, [""]], names=["Variable", "Variation"]
         )
-        print("flag4")
+
         if self.timer:
             self.timer.add_checkpoint("Jet preparation & event weights")
 
@@ -413,7 +594,7 @@ class DimuonProcessor(processor.ProcessorABC):
             )
             if output_updated is not None:
                 output = output_updated
-        print("flag5")
+
         if self.timer:
             self.timer.add_checkpoint("Jet loop")
 
@@ -435,7 +616,7 @@ class DimuonProcessor(processor.ProcessorABC):
         # ------------------------------------------------------------#
         # Fill outputs
         # ------------------------------------------------------------#
-        print("flag6")
+
         output.loc[
             ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)), "r"
         ] = "bb"
@@ -511,7 +692,6 @@ class DimuonProcessor(processor.ProcessorABC):
                         mass_be, leadingPt_be, "be", "mu", float(self.year), DY=True
                     )
                 ).values
-        print("flag7")
         if is_mc and "ttbar" in dataset and self.applyNNPDFWeight:
             mass_bb = output[output["r"] == "bb"].dimuon_mass_gen.to_numpy()
             mass_be = output[output["r"] == "be"].dimuon_mass_gen.to_numpy()
@@ -544,14 +724,12 @@ class DimuonProcessor(processor.ProcessorABC):
                         mass_be, leadingPt_be, "be", "mu", float(self.year), DY=False
                     )
                 ).values
-        print("flag8")
+
         output = output.loc[output.event_selection, :]
         output = output.reindex(sorted(output.columns), axis=1)
         output = output[output.r.isin(self.regions)]
         output.columns = output.columns.droplevel("Variation")
-        print("flag9")
-        print(f"self.apply_to_output: {self.apply_to_output}")
-        print(f"output final: {output.to_string()}")
+
         if self.timer:
             self.timer.add_checkpoint("Filled outputs")
             self.timer.summary()
@@ -560,7 +738,6 @@ class DimuonProcessor(processor.ProcessorABC):
             return output
         else:
             self.apply_to_output(output)
-            print(f"self.accumulator.identity(): {self.accumulator.identity()}")
             return self.accumulator.identity()
 
     def jet_loop(

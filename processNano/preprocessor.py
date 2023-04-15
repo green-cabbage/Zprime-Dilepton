@@ -9,6 +9,7 @@ from config.parameters import parameters
 from config.parameters import lumis
 from config.cross_sections import cross_sections
 
+import time
 
 def load_sample(dataset, parameters):
     xrootd = not (dataset == "test_file")
@@ -43,8 +44,10 @@ def load_samples(datasets, parameters):
         "debug": False,
     }
     samp_info_total = SamplesInfo(**args)
-    print("Loading lists of paths to ROOT files for these datasets:", datasets)
-    for d in tqdm.tqdm(datasets):
+    print("nano Loading lists of paths to ROOT files for these datasets:", datasets)
+    for d in tqdm.tqdm(datasets, disable=False):
+    # for d in datasets:
+        # print(f"d: {d}")
         if d in samp_info_total.samples:
             continue
         si = load_sample(d, parameters)[d]
@@ -101,11 +104,15 @@ class SamplesInfo(object):
         self.is_mc = True
         if "mu" in datasets_from:
             from config.datasets_muon import datasets
+        elif "emu" in datasets_from:
+            from config.datasets_muon import datasets    
         elif "el" in datasets_from:
             from config.datasets_electron import datasets
         self.paths = datasets[self.year]
 
         if "mu" in datasets_from:
+            self.lumi = lumis[self.year][1]
+        elif "emu" in datasets_from:
             self.lumi = lumis[self.year][1]
         else:
             self.lumi = lumis[self.year][0]
@@ -171,6 +178,8 @@ class SamplesInfo(object):
         nGenEvts = 0
         if use_dask:
             from dask.distributed import get_client
+            # print(f"type(client): {type(client)}")
+            # print(f"all_files: {all_files}")
 
             if not client:
                 client = get_client()
@@ -178,7 +187,11 @@ class SamplesInfo(object):
                 work = client.map(self.get_data, all_files, priority=100)
             else:
                 work = client.map(self.get_mc, all_files, priority=100)
+            # print(f"work: {work}")
+            # print(f"sample: {sample}")
+            # print(f"len(work): {len(work)}")
             for w in work:
+                # print(f"w: {w}")
                 ret = w.result()
                 if "data" in sample:
                     data_entries += ret["data_entries"]
