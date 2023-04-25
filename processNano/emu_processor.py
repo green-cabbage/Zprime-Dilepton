@@ -30,7 +30,8 @@ from processNano.jets import prepare_jets, fill_jets, fill_bjets, btagSF
 import copy
 
 from processNano.muons import find_dimuon, fill_muons
-from processNano.utils import bbangle
+from processNano.utils import bbangle, delta_r
+from processNano.emus import get_pair_inv_mass
 
 from config.parameters import parameters, muon_branches, ele_branches, jet_branches
 
@@ -302,43 +303,54 @@ class EmuProcessor(processor.ProcessorABC):
             #     & (flags > 0)
             #     & good_pv
             # )
-            print("flag2")
-            n_entries = muons.reset_index().groupby("entry")["subentry"].max()
-            print(f"muons: \n {muons.to_string()}")
-            amandeep_sort =muons.sort_values(by="pt")
-            print(50*"-")
-            print(f"amandeep_sort: \n {amandeep_sort.to_string()}")
-            print(50*"-")
-            test = muons.reset_index().sort_values(by=["entry","pt"])
-            print(f"test : \n {test.to_string()}")
+            # n_entries = muons.reset_index().groupby("entry")["subentry"].max()
+            # print(f"muons: \n {muons.to_string()}")
+            # # amandeep_sort =muons.sort_values(by="pt")
+            # # print(50*"-")
+            # # print(f"amandeep_sort: \n {amandeep_sort.to_string()}")
+            # print(50*"-")
+            # test = muons.reset_index().sort_values(by=["entry","pt"])
+            # print(f"test : \n {test.to_string()}")
+            # # now remove the rows with same entries but with lower pt vals
+            # # this is done by droping duplicates of entries column, but 
+            # # keeping the last row, which is sorted to have the highest pt
+            # print(50*"-")
+            # drop_test = test.drop_duplicates(subset=['entry'], keep='last')
+            # print(f"drop_test : \n {drop_test.to_string()}")
+            # print(50*"-")
+            # print(f"n_entries: \n {len(n_entries)}")
+            # cols_to_group = muons.reset_index().columns.values.tolist()
+            # cols_to_group.remove("pt")
+            # print(f"cols_to_group: {cols_to_group}")
+            # print(f"muons.reset_index().groupby(cols_to_group): {muons.reset_index().groupby(cols_to_group)}")
+            # mupt = muons.reset_index().groupby(["entry"])["pt"].max().reset_index()
+            # print(50*"-")
+            # print(f"mupt: \n {mupt.to_string()}")
+            # mupt = mupt.set_index("entry").sort_index()
+            # print(50*"-")
+            # print(f"new mupt: \n {mupt.to_string()}")
+            # print(f"new mupt length: \n {len(mupt)}")
+            
+            # nmuons = (
+            #     muons[muons.selection]
+            #     .reset_index()
+            #     .groupby("entry")["subentry"]
+            #     .nunique()
+            # )
+            # print(50*"-")
+            # print(f"nmuons: \n {nmuons.to_string()}")
+
+            # pick particle on each entry with the highest pt val
+            print(f"muons b4: \n {muons.to_string()}")
+            muons = muons.reset_index().sort_values(by=["entry","pt"])
+            print(f"muons after sort: \n {muons.to_string()}")
             # now remove the rows with same entries but with lower pt vals
             # this is done by droping duplicates of entries column, but 
             # keeping the last row, which is sorted to have the highest pt
             print(50*"-")
-            drop_test = test.drop_duplicates(subset=['entry'], keep='last')
-            print(f"drop_test : \n {drop_test.to_string()}")
-            print(50*"-")
-            print(f"n_entries: \n {len(n_entries)}")
-            cols_to_group = muons.reset_index().columns.values.tolist()
-            cols_to_group.remove("pt")
-            print(f"cols_to_group: {cols_to_group}")
-            print(f"muons.reset_index().groupby(cols_to_group): {muons.reset_index().groupby(cols_to_group)}")
-            mupt = muons.reset_index().groupby(["entry"])["pt"].max().reset_index()
-            print(50*"-")
-            print(f"mupt: \n {mupt.to_string()}")
-            mupt = mupt.set_index("entry").sort_index()
-            print(50*"-")
-            print(f"new mupt: \n {mupt.to_string()}")
-            print(f"new mupt length: \n {len(mupt)}")
-            
-            nmuons = (
-                muons[muons.selection]
-                .reset_index()
-                .groupby("entry")["subentry"]
-                .nunique()
-            )
-            print(50*"-")
-            print(f"nmuons: \n {nmuons.to_string()}")
+            muons = muons.drop_duplicates(subset=['entry'], keep='last').set_index("entry")
+            # muons.drop(columns=["subentry"], inplace=True)
+            print(f"muons after drop: \n {muons.to_string()}")
 
             # --------------------------------------------------------#
             # Electron selection
@@ -353,7 +365,7 @@ class EmuProcessor(processor.ProcessorABC):
                 electrons.loc[electrons.idx == -1, "eta_gen"] = -999.0
                 electrons.loc[electrons.idx == -1, "phi_gen"] = -999.0
 
-            print("flag3")
+            print("flag2")
             # Apply event quality flag
             flags = ak.to_pandas(df.Flag)
             flags = flags[self.parameters["event_flags"]].product(axis=1)
@@ -364,181 +376,97 @@ class EmuProcessor(processor.ProcessorABC):
                 & (abs(electrons.eta) < self.parameters["electron_eta_cut"])
                 & (electrons[self.parameters["electron_id"]] > 0)
             )
-
+            print("flag3")
             if dataset == "dyInclusive50":
                 electrons = electrons[electrons.genPartFlav == 15]
-            # Count electrons
-            nelectrons = (
-                electrons[electrons.selection]
-                .reset_index()
-                .groupby("entry")["subentry"]
-                .nunique()
-            )
-            if is_mc:
-                output["el_event_selection"] = mask & (hlt > 0) & (nelectrons >= 2)
-            else:
-                output["el_event_selection"] = mask & (hlt > 0) & (nelectrons >= 4)
+            # # Count electrons
+            # nelectrons = (
+            #     electrons[electrons.selection]
+            #     .reset_index()
+            #     .groupby("entry")["subentry"]
+            #     .nunique()
+            # )
+            # if is_mc:
+            #     output["el_event_selection"] = mask & (hlt > 0) & (nelectrons >= 2)
+            # else:
+            #     output["el_event_selection"] = mask & (hlt > 0) & (nelectrons >= 4)
             print("flag4")
-
-            # joins muons and electrons as one df
-            new_mu_cols = {}
-            for col in muons.columns:
-                new_mu_cols[col] =col+"_mu"
-            muons.rename(columns=new_mu_cols, inplace=True)
-            muons = muons.reset_index()
-            muons["group_key"] = muons['entry'].astype(str) + muons['subentry'].astype(str) 
-            new_el_cols = {}
-            for col in electrons.columns:
-                new_el_cols[col] =col+"_mu"
-            electrons.rename(columns=new_el_cols, inplace=True)
-            electrons = electrons.reset_index()
-            electrons["group_key"] = electrons['entry'].astype(str) + electrons['subentry'].astype(str) 
-            print("flag5")
-            leptons = muons.join(electrons.set_index('group_key'), on='group_key', how="outer", lsuffix='_mu', rsuffix='_el')
-            leptons.set_index("group_key", inplace=True)
-            # leptons = muons.join(electrons.set_index('group_key'), on='group_key')
-            print(f"muons): {(muons.to_string())}")
-            # print(f"muons.reset_index()): {(muons.reset_index())}")
-            print(f"electrons): {(electrons.to_string())}")
-            print(f"leptons: {leptons.to_string()}")
+            # pick electorn particle on each entry with the highest pt val
+            print(f"electrons b4: \n {electrons.to_string()}")
+            electrons = electrons.reset_index().sort_values(by=["entry","pt"])
+            print(f"electrons after sort: \n {electrons.to_string()}")
+            # now remove the rows with same entries but with lower pt vals
+            # this is done by droping duplicates of entries column, but 
+            # keeping the last row, which is sorted to have the highest pt
+            print(50*"-")
+            electrons = electrons.drop_duplicates(subset=['entry'], keep='last').set_index("entry")
+            # electrons.drop(columns=["subentry"], inplace=True)
+            print(f"electrons after drop: \n {electrons.to_string()}")
             
+            
+
+
+
+            # Now join muons and electrons as one df
+
+            # new_mu_cols = {}
+            # for col in muons.columns:
+            #     new_mu_cols[col] =col+"_mu"
+            # muons.rename(columns=new_mu_cols, inplace=True)
+            # muons = muons.reset_index()
+            # muons["group_key"] = muons['entry'].astype(str) + muons['subentry'].astype(str) 
+            # new_el_cols = {}
+            # for col in electrons.columns:
+            #     new_el_cols[col] =col+"_mu"
+            # electrons.rename(columns=new_el_cols, inplace=True)
+            # electrons = electrons.reset_index()
+            # electrons["group_key"] = electrons['entry'].astype(str) + electrons['subentry'].astype(str) 
+            # print("flag5")
+            # leptons = muons.join(electrons.set_index('group_key'), on='group_key', how="outer", lsuffix='_mu', rsuffix='_el')
+            # leptons.set_index("group_key", inplace=True)
+            # # leptons = muons.join(electrons.set_index('group_key'), on='group_key')
+            # print(f"muons): {(muons.to_string())}")
+            # # print(f"muons.reset_index()): {(muons.reset_index())}")
+            # print(f"electrons): {(electrons.to_string())}")
+            leptons = muons.join(electrons, how="outer", lsuffix='_mu', rsuffix='_el')
+            print(f"leptons: {leptons.to_string()}")
+            leptons.dropna(inplace=True) # drop na since both an electron and muon has to exist
+            print(f"leptons after dropna: {leptons.to_string()}")
+
+            # drop non opposite charge pairs
+            leptons["charge cut"] = leptons["charge_mu"]*leptons["charge_el"] < 0 # if opposite charge, the product of two charges should be negative
+            print(f'leptons["charge cut"] : \n {leptons["charge cut"].to_string()}')
+            leptons = leptons[leptons["charge cut"] ] # drop non opposite charge pairs
+            print(f"leptons after non OS charge drop: \n {leptons.to_string()}")
+            leptons.drop(columns=["charge cut"], inplace=True) # don't need it anymore
+            print(f"leptons after drop charge cut columns: \n {leptons.to_string()}")
+            deta, dphi, dr = delta_r(leptons["eta_mu"], leptons["eta_el"], leptons["phi_mu"],leptons["phi_el"])
+            print(f"delta_r dr: \n {dr}")
+            leptons["dR cut"] = dr > 0.4
+            print(f'leptons["dR cut"] : \n {leptons["dR cut"].to_string()}')
+            leptons = leptons[leptons["dR cut"] ]
+            leptons.drop(columns=["dR cut"], inplace=True) # don't need it anymore
+            print(f"leptons after dR cut: \n {leptons.to_string()}")
+            pair_inv_mass = get_pair_inv_mass(
+                leptons["mass_mu"],
+                leptons["mass_el"],
+                leptons["pt_mu"],
+                leptons["pt_el"],
+                leptons["eta_mu"],
+                leptons["eta_el"],
+                leptons["phi_mu"],
+                leptons["phi_el"]
+            )
+            print(f"pair inv mass: \n {pair_inv_mass}")
+            leptons["pair inv mass"] = pair_inv_mass
+
+
 
             # Selection complete
             if self.timer:
                 self.timer.add_checkpoint("Selected events and electrons")
             
             
-
-            # # --------------------------------------------------------#
-            # # Select muons that pass pT, eta, isolation cuts,
-            # # muon ID and quality flags
-            # # Do the same with electrons
-            # # Select events with 1 muons, 1 electron, with opposite signs
-            # # passing quality cuts and at least one good PV
-            # # --------------------------------------------------------#
-
-            # # Apply event quality flag
-            # output["r"] = None
-            # output["dataset"] = dataset
-            # output["year"] = int(self.year)
-            # if dataset == "dyInclusive50":
-            #     leptons = leptons[leptons.genPartFlav == 15]
-            # flags = ak.to_pandas(df.Flag)
-            # flags = flags[self.parameters["event_flags"]].product(axis=1)
-            # leptons["pass_flags"] = True
-            # if self.parameters["muon_flags"]:
-            #     leptons["pass_flags"] = leptons[self.parameters["muon_flags"]].product(
-            #         axis=1
-            #     )
-            # # Define baseline muon selection (applied to pandas DF!)
-            
-            # leptons["selection"] = (
-            #     (leptons.pt_raw > self.parameters["muon_pt_cut"])
-            #     & (abs(leptons.eta_raw) < self.parameters["muon_eta_cut"])
-            #     & (leptons.tkRelIso < self.parameters["muon_iso_cut"])
-            #     & (leptons[self.parameters["muon_id"]] > 0)
-            #     & (leptons.dxy < self.parameters["muon_dxy"])
-            #     & (
-            #         (leptons.ptErr.values / leptons.pt.values)
-            #         < self.parameters["muon_ptErr/pt"]
-            #     )
-            #     & leptons.pass_flags
-            # )
-            # # print(f"leptons after: {leptons}")
-            # # print(f'leptons.groupby("entry")["subentry"]: {leptons.groupby("entry")["subentry"]:}')
-
-            # # Count muons
-            # nleptons = (
-            #     leptons[leptons.selection]
-            #     .reset_index()
-            #     .groupby("entry")["subentry"]
-            #     .nunique()
-            # )
-            # # print(f"leptons after2 : {leptons}")
-            # # print("flag")
-            # # Find opposite-sign muons
-            # sum_charge = leptons.loc[leptons.selection, "charge"].groupby("entry").sum()
-            # # print(f"sum_charge: {sum_charge}")
-
-            # # Find events with at least one good primary vertex
-            # good_pv = ak.to_pandas(df.PV).npvsGood > 0
-
-            # # Define baseline event selection
-
-            # output["two_muons"] = (nmuons == 2) | (nmuons > 2)
-            # output["two_muons"] = output["two_muons"].fillna(False)
-            # output["event_selection"] = (
-            #     mask
-            #     & (hlt > 0)
-            #     & (flags > 0)
-            #     & (nmuons >= 2)
-            #     & (abs(sum_charge) < nmuons)
-            #     & good_pv
-            # )
-            # if self.timer:
-            #     self.timer.add_checkpoint("Selected events and muons")
-
-            # --------------------------------------------------------#
-            # Initialize muon variables
-            # --------------------------------------------------------#
-
-            # Find pT-leading and subleading muon, electron pair
-            muons = muons[muons.selection & (nmuons >= 2) & (abs(sum_charge) < nmuons)]
-
-            if self.timer:
-                self.timer.add_checkpoint("muon object selection")
-            if muons.shape[0] == 0:
-                output = output.reindex(sorted(output.columns), axis=1)
-                output = output[output.r.isin(self.regions)]
-
-                # return output
-                if self.apply_to_output is None:
-                    return output
-                else:
-                    self.apply_to_output(output)
-                    return self.accumulator.identity()
-
-            result = muons.groupby("entry").apply(find_dimuon, is_mc=is_mc)
-
-            if is_mc:
-                dimuon = pd.DataFrame(
-                    result.to_list(), columns=["idx1", "idx2", "mass"]
-                )
-            else:
-                dimuon = pd.DataFrame(
-                    result.to_list(), columns=["idx1", "idx2", "mass"]
-                )
-            mu1 = muons.loc[dimuon.idx1.values, :]
-            mu2 = muons.loc[dimuon.idx2.values, :]
-            mu1.index = mu1.index.droplevel("subentry")
-            mu2.index = mu2.index.droplevel("subentry")
-            if self.timer:
-                self.timer.add_checkpoint("dimuon pair selection")
-
-            output["bbangle"] = bbangle(mu1, mu2)
-
-            output["event_selection"] = output.event_selection & (
-                output.bbangle > self.parameters["3dangle"]
-            )
-
-            if self.timer:
-                self.timer.add_checkpoint("back back angle calculation")
-
-            # --------------------------------------------------------#
-            # Select events with muons passing leading pT cut
-            # and trigger matching
-            # --------------------------------------------------------#
-
-            # Events where there is at least one muon passing
-            # leading muon pT cut
-
-            # if self.timer:
-            #    self.timer.add_checkpoint("Applied trigger matching")
-
-            # --------------------------------------------------------#
-            # Fill dimuon and muon variables
-            # --------------------------------------------------------#
-            fill_muons(self, output, mu1, mu2, is_mc, self.year, weights)
 
         # ------------------------------------------------------------#
         # Prepare jets

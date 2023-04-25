@@ -5,6 +5,30 @@ from processNano.corrections.muonMassResolution import smearMass
 from processNano.corrections.muonMassScale import muonScaleUncert
 from processNano.corrections.muonRecoUncert import muonRecoUncert
 
+def get_pair_inv_mass(mu_mass, el_mass, mu_pt, el_pt, mu_eta, el_eta, mu_phi, el_phi):
+    """
+    take the four vectors of the muon + electron pair and calculate their invariant mass
+    """
+    px1_ = mu_pt * np.cos(mu_phi)
+    py1_ = mu_pt * np.sin(mu_phi)
+    pz1_ = mu_pt * np.sinh(mu_eta)
+    e1_ = np.sqrt(px1_ ** 2 + py1_ ** 2 + pz1_ ** 2 + mu_mass ** 2)
+    px2_ = el_pt * np.cos(el_phi)
+    py2_ = el_pt * np.sin(el_phi)
+    pz2_ = el_pt * np.sinh(el_eta)
+    e2_ = np.sqrt(px2_ ** 2 + py2_ ** 2 + pz2_ ** 2 + el_mass ** 2)
+    m2 = (
+        (e1_ + e2_) ** 2
+        - (px1_ + px2_) ** 2
+        - (py1_ + py2_) ** 2
+        - (pz1_ + pz2_) ** 2
+    )
+    print(f"m2: {m2}")
+    # mass = np.sqrt(np.max(0, m2))
+    m2[m2 < 0] = 0 # override negative values as zero
+    mass = np.sqrt(m2)
+    return mass
+
 
 def find_dimuon(objs, is_mc=False):
     is_mc = False
