@@ -425,25 +425,7 @@ class EmuProcessor(processor.ProcessorABC):
 
             # Now join muons and electrons as one df
 
-            # new_mu_cols = {}
-            # for col in muons.columns:
-            #     new_mu_cols[col] =col+"_mu"
-            # muons.rename(columns=new_mu_cols, inplace=True)
-            # muons = muons.reset_index()
-            # muons["group_key"] = muons['entry'].astype(str) + muons['subentry'].astype(str) 
-            # new_el_cols = {}
-            # for col in electrons.columns:
-            #     new_el_cols[col] =col+"_mu"
-            # electrons.rename(columns=new_el_cols, inplace=True)
-            # electrons = electrons.reset_index()
-            # electrons["group_key"] = electrons['entry'].astype(str) + electrons['subentry'].astype(str) 
-            # print("flag5")
-            # leptons = muons.join(electrons.set_index('group_key'), on='group_key', how="outer", lsuffix='_mu', rsuffix='_el')
-            # leptons.set_index("group_key", inplace=True)
-            # # leptons = muons.join(electrons.set_index('group_key'), on='group_key')
-            # print(f"muons): {(muons.to_string())}")
-            # # print(f"muons.reset_index()): {(muons.reset_index())}")
-            # print(f"electrons): {(electrons.to_string())}")
+
             leptons = muons.join(electrons, how="outer", lsuffix='_mu', rsuffix='_el')
             print(f"leptons: {leptons.to_string()}")
             leptons.dropna(inplace=True) # drop na since both an electron and muon has to exist
@@ -475,8 +457,11 @@ class EmuProcessor(processor.ProcessorABC):
             )
             print(f"pair inv mass: \n {pair_inv_mass}")
             leptons["pair inv mass"] = pair_inv_mass
-
-
+            # filter out unncessary columns
+            print(f"leptons b4 dropping unncessary columns: \n {leptons.to_string()}")
+            cols_to_keep = ["mass", "pt", "eta","phi"]
+            leptons = filter_df_cols(leptons, cols_to_keep)
+            print(f"leptons after dropping unncessary columns: \n {leptons.to_string()}")
 
             # Selection complete
             if self.timer:
@@ -516,7 +501,25 @@ class EmuProcessor(processor.ProcessorABC):
         print(f"jet_branches: {jet_branches}")
         print(f"output.index: {output.index}")
         for v_name in self.pt_variations:
-            output_updated = self.jet_loop(
+            # output_updated = self.jet_loop(
+            #     v_name,
+            #     is_mc,
+            #     df,
+            #     dataset,
+            #     mask,
+            #     leptons,
+            #     # mu1,
+            #     # mu2,
+            #     jets,
+            #     jet_branches,
+            #     weights,
+            #     numevents,
+            #     output.index
+            #     # output,
+            # )
+            # if output_updated is not None:
+            #     output = output_updated
+            bjets_df, jets_df = self.jet_loop(
                 v_name,
                 is_mc,
                 df,
@@ -532,23 +535,32 @@ class EmuProcessor(processor.ProcessorABC):
                 output.index
                 # output,
             )
-            if output_updated is not None:
-                output = output_updated
 
         if self.timer:
             self.timer.add_checkpoint("Computed event weights")
+        print(f"leptons b4 adding bjets and jets: \n {leptons.to_string()}")
+        leptons["rows to keep"] = True 
+        leptons = leptons.join(bjets_df, how="outer", lsuffix='', rsuffix='_bjets') 
+        leptons = leptons.join(jets_df, how="outer", lsuffix='', rsuffix='_jets') 
+        leptons["rows to keep"].fillna(False, inplace=True)
+        print(leptons["rows to keep"])
+        leptons = leptons[leptons["rows to keep"]] # only keep rows with lepton values
+        # leptons.dropna(inplace=True)
+        leptons.fillna(0, inplace=True) # this is to fill NaN values from bjet and jet dfs
+        leptons.drop(columns=["rows to keep"], inplace=True) # don't need it anymore
+        print(f"leptons after adding bjets and jets: \n {leptons.to_string()}")
 
         print("jet selection flag 1")
         # ------------------------------------------------------------#
         # Fill outputs
         # ------------------------------------------------------------#
 
-        output.loc[
-            ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)), "r"
-        ] = "bb"
-        output.loc[
-            ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)), "r"
-        ] = "be"
+        # output.loc[
+        #     ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)), "r"
+        # ] = "bb"
+        # output.loc[
+        #     ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)), "r"
+        # ] = "be"
 
         output["year"] = int(self.year)
 
@@ -906,18 +918,12 @@ class EmuProcessor(processor.ProcessorABC):
         # del mu1
         # del mu2
         # return output
-        cols_to_keep = ["mass", "pt"]#, "eta","phi"]
-        # bjets_cols_to_keep = [col for col in bjets_df.columns if ]
-        # print(f"bjets_df.columns.str.contains('mass'): {bjets_df.columns.str.contains('mass')}")
-        # bjets_bool = ~bjets_df.columns.str.contains("") # all false, since we are using or operators
-        # jets_bool = ~jets_df.columns.str.contains("") # all false, since we are using or operators
-        # # print(f"bool_col: {bool_col}")
-        # for col in cols_to_keep:
-        #     bjets_bool = bjets_bool | (bjets_df.columns.str.contains(col))
+        cols_to_keep = ["mass", "pt", "eta","phi"]
         print(f"bjets_df b4: \n {bjets_df.to_string()}")
-        # bjets_df = bjets_df.loc[:,bjets_bool]
         bjets_df = filter_df_cols(bjets_df, cols_to_keep)
         print(f"bjets_df after: \n {bjets_df.to_string()}")
+        jets_df = filter_df_cols(jets_df, cols_to_keep)
+        
 
         return bjets_df, jets_df
 
