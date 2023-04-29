@@ -25,15 +25,31 @@ from processNano.corrections.nnpdfWeight import NNPDFWeight
 from copperhead.stage1.corrections.jec import jec_factories, apply_jec
 from copperhead.config.jec_parameters import jec_parameters
 
-from processNano.jets import prepare_jets, fill_jets, fill_bjets, btagSF
+# from processNano.jets import prepare_jets, fill_jets, fill_bjets, btagSF
+from processNano.jets import prepare_jets, btagSF
 
 import copy
 
 from processNano.muons import find_dimuon, fill_muons
 from processNano.utils import bbangle, delta_r
-from processNano.emus import get_pair_inv_mass
+from processNano.emus import get_pair_inv_mass, fill_jets, fill_bjets
 
 from config.parameters import parameters, muon_branches, ele_branches, jet_branches
+from typing import TypeVar, List
+
+pd_df = TypeVar("pandas_df")
+
+def filter_df_cols(df: pd_df, cols_to_keep: List[str]) -> pd_df:
+    """
+    Take the given pandas df and keep the columns that contains ANY of the string elements
+    in the cols_to_keep list
+    """
+
+    bool_filter = ~df.columns.str.contains("") # all false, since we are using or operators
+    # print(f"bool_col: {bool_col}")
+    for col in cols_to_keep:
+        bool_filter = bool_filter | (df.columns.str.contains(col))
+    return df.loc[:,bool_filter]
 
 class EmuProcessor(processor.ProcessorABC):
     def __init__(self, **kwargs):
@@ -476,34 +492,29 @@ class EmuProcessor(processor.ProcessorABC):
         # ------------------------------------------------------------#
         # Apply JEC, get JEC and JER variations
         # ------------------------------------------------------------#
-
+        print("jet selection starting")
         jets = df.Jet
-        # self.do_jec = False
-
-        # We only need to reapply JEC for 2018 data
-        # (unless new versions of JEC are released)
-        # if ("data" in dataset) and ("2018" in self.year):
-        #    self.do_jec = False
-
-        # apply_jec(
-        #    df,
-        #    jets,
-        #    dataset,
-        #    is_mc,
-        #    self.year,
-        #    self.do_jec,
-        #    self.do_jecunc,
-        #    self.do_jerunc,
-        #    self.jec_factories,
-        #    self.jec_factories_data,
-        # )
+       
         output.columns = pd.MultiIndex.from_product(
             [output.columns, [""]], names=["Variable", "Variation"]
         )
 
         if self.timer:
             self.timer.add_checkpoint("Jet preparation & event weights")
-
+        print("jet selection starting2")
+        print(f"output.columns: {output.columns}")
+        # print(f"self.pt_variations: {self.pt_variations}")
+        print(f"df: {df}")
+        print(f"dataset: {dataset}")
+        # print(f"mu2: {mu2}")
+        # print(f"mu1: {mu1}")
+        print(f"jets: {jets}")
+        print(f"jets: {jets[0][0]}")
+        print(f"mask: {mask}")
+        print(f"weights: {weights}")
+        print(f"numevents: {numevents}")
+        print(f"jet_branches: {jet_branches}")
+        print(f"output.index: {output.index}")
         for v_name in self.pt_variations:
             output_updated = self.jet_loop(
                 v_name,
@@ -511,36 +522,23 @@ class EmuProcessor(processor.ProcessorABC):
                 df,
                 dataset,
                 mask,
-                muons,
-                mu1,
-                mu2,
+                leptons,
+                # mu1,
+                # mu2,
                 jets,
                 jet_branches,
                 weights,
                 numevents,
-                output,
+                output.index
+                # output,
             )
             if output_updated is not None:
                 output = output_updated
 
         if self.timer:
-            self.timer.add_checkpoint("Jet loop")
-
-            # if is_mc:
-            """
-            do_zpt = ('dy' in dataset)
-            if do_zpt:
-                zpt_weight = np.ones(numevents, dtype=float)
-                zpt_weight[two_muons] =\
-                    self.evaluator[self.zpt_path](
-                        output['dimuon_pt'][two_muons]
-                    ).flatten()
-                weights.add_weight('zpt_wgt', zpt_weight)
-            """
-
-        if self.timer:
             self.timer.add_checkpoint("Computed event weights")
 
+        print("jet selection flag 1")
         # ------------------------------------------------------------#
         # Fill outputs
         # ------------------------------------------------------------#
@@ -658,6 +656,7 @@ class EmuProcessor(processor.ProcessorABC):
         output = output[output.r.isin(self.regions)]
         output.columns = output.columns.droplevel("Variation")
 
+        print("jet selection flag 2")
         if self.timer:
             self.timer.add_checkpoint("Filled outputs")
             self.timer.summary()
@@ -675,22 +674,25 @@ class EmuProcessor(processor.ProcessorABC):
         df,
         dataset,
         mask,
-        muons,
-        mu1,
-        mu2,
+        leptons,
+        # mu1,
+        # mu2,
         jets,
         jet_branches,
         weights,
         numevents,
-        output,
+        # output,
+        indices
     ):
+        print("jet loop flag")
 
         if not is_mc and variation != "nominal":
             return
 
-        variables = pd.DataFrame(index=output.index)
+        # variables = pd.DataFrame(index=output.index)
+        variables = pd.DataFrame(index= indices)
         jet_branches_local = copy.copy(jet_branches)
-
+        print("jet loop flag2")
         if is_mc:
             jets["pt_gen"] = jets.matched_gen.pt
             jets["eta_gen"] = jets.matched_gen.eta
@@ -711,23 +713,23 @@ class EmuProcessor(processor.ProcessorABC):
         #        jet_branches_local += ["pt_orig", "mass_orig"]
 
         # Find jets that have selected muons within dR<0.4 from them
-        matched_mu_pt = jets.matched_muons.pt
-        matched_mu_iso = jets.matched_muons.pfRelIso04_all
-        matched_mu_id = jets.matched_muons[self.parameters["muon_id"]]
-        matched_mu_pass = (
-            (matched_mu_pt > self.parameters["muon_pt_cut"])
-            & (matched_mu_iso < self.parameters["muon_iso_cut"])
-            & matched_mu_id
-        )
-        clean = ~(
-            ak.to_pandas(matched_mu_pass)
-            .astype(float)
-            .fillna(0.0)
-            .groupby(level=[0, 1])
-            .sum()
-            .astype(bool)
-        )
-
+        # matched_mu_pt = jets.matched_muons.pt
+        # matched_mu_iso = jets.matched_muons.pfRelIso04_all
+        # matched_mu_id = jets.matched_muons[self.parameters["muon_id"]]
+        # matched_mu_pass = (
+        #     (matched_mu_pt > self.parameters["muon_pt_cut"])
+        #     & (matched_mu_iso < self.parameters["muon_iso_cut"])
+        #     & matched_mu_id
+        # )
+        # clean = ~(
+        #     ak.to_pandas(matched_mu_pass)
+        #     .astype(float)
+        #     .fillna(0.0)
+        #     .groupby(level=[0, 1])
+        #     .sum()
+        #     .astype(bool)
+        # )
+        print("jet loop flag3")
         if self.timer:
             self.timer.add_checkpoint("Clean jets from matched muons")
 
@@ -748,12 +750,14 @@ class EmuProcessor(processor.ProcessorABC):
 
         # --- conversion from awkward to pandas --- #
         jets = ak.to_pandas(jets)
+        print(f"jets: \n {jets.to_string()}")
 
         if jets.index.nlevels == 3:
             # sometimes there are duplicates?
             jets = jets.loc[pd.IndexSlice[:, :, 0], :]
             jets.index = jets.index.droplevel("subsubentry")
 
+        print("jet loop flag4")
         # ------------------------------------------------------------#
         # Apply jetID
         # ------------------------------------------------------------#
@@ -763,6 +767,8 @@ class EmuProcessor(processor.ProcessorABC):
             [jets.index.get_level_values(0), jets.groupby(level=0).cumcount()],
             names=["entry", "subentry"],
         )
+
+        print("jet loop flag5")
 
         jets = jets.dropna()
         jets = jets.loc[:, ~jets.columns.duplicated()]
@@ -820,6 +826,8 @@ class EmuProcessor(processor.ProcessorABC):
             "selection",
         ] = 1
 
+        print(f"jets:\n  {jets.to_string()}")
+
         njets = jets.loc[:, "selection"].groupby("entry").sum()
         variables["njets"] = njets
 
@@ -839,17 +847,45 @@ class EmuProcessor(processor.ProcessorABC):
 
         bjets = jets.query("bselection==1")
         bjets = bjets.sort_values(["entry", "pt"], ascending=[True, False])
+        print(f"bjets: \n {bjets.to_string()}")
         bjet1 = bjets.groupby("entry").nth(0)
         bjet2 = bjets.groupby("entry").nth(1)
+        bjets_df = bjet1.join(bjet2, how="outer", lsuffix='_bjet1', rsuffix='_bjet2')
         bJets = [bjet1, bjet2]
-        muons = [mu1, mu2]
-        fill_bjets(output, variables, bJets, muons, is_mc=is_mc)
+        print(f"bjet1: \n {bjet1.to_string()}")
+        print(f"bjet2: \n {bjet2.to_string()}")
+        print(f"bjets_df: \n {bjets_df.to_string()}")
+        mu_col = []
+        el_col = []
+        for col in leptons.columns:
+            if "_mu" in col:
+                mu_col.append(col)
+            elif "_el" in col:
+                el_col.append(col)
+        print(f"mu_col: {mu_col}")
+        print(f"el_col: {el_col}")
+        mu = leptons[mu_col]
+        el = leptons[el_col]
+        print(f"mu: \n {mu.to_string()}")
+        print(f"el: \n {el.to_string()}")
+        lepton_l = [mu, el]
+        print("jet loop flag6")
+        print(f"leptons b4 fill b_jets: \n {leptons.to_string()}")
+        fill_bjets(leptons, variables, bJets, lepton_l, is_mc=is_mc)
+        print(f"leptons after fill b_jets: \n {leptons.to_string()}")
 
         jets = jets.sort_values(["entry", "pt"], ascending=[True, False])
         jet1 = jets.groupby("entry").nth(0)
         jet2 = jets.groupby("entry").nth(1)
+        jets_df = jet1.join(jet2, how="outer", lsuffix='_jet1', rsuffix='_jet2')
+        print(f"jet1: \n {jet1.to_string()}")
+        print(f"jet2: \n {jet2.to_string()}")
+        print(f"jets_df: \n {jets_df.to_string()}")
         Jets = [jet1, jet2]
-        fill_jets(output, variables, Jets, is_mc=is_mc)
+        # print("jet loop flag7")
+        print(f"leptons b4 fill jets:\n  {leptons.to_string()}")
+        fill_jets(leptons, variables, Jets, is_mc=is_mc)
+        print(f"leptons after fill jets: \n {leptons.to_string()}")
         if self.timer:
             self.timer.add_checkpoint("Filled jet variables")
 
@@ -860,16 +896,30 @@ class EmuProcessor(processor.ProcessorABC):
         # a jet may or may not be selected depending on pT variation.
 
         for key, val in variables.items():
-            output.loc[:, key] = val
+            print(f"key: {key}, val: {val}")
+            # output.loc[:, key] = val
 
         del df
-        del muons
+        # del muons
         del jets
         del bjets
-        del mu1
-        del mu2
+        # del mu1
+        # del mu2
+        # return output
+        cols_to_keep = ["mass", "pt"]#, "eta","phi"]
+        # bjets_cols_to_keep = [col for col in bjets_df.columns if ]
+        # print(f"bjets_df.columns.str.contains('mass'): {bjets_df.columns.str.contains('mass')}")
+        # bjets_bool = ~bjets_df.columns.str.contains("") # all false, since we are using or operators
+        # jets_bool = ~jets_df.columns.str.contains("") # all false, since we are using or operators
+        # # print(f"bool_col: {bool_col}")
+        # for col in cols_to_keep:
+        #     bjets_bool = bjets_bool | (bjets_df.columns.str.contains(col))
+        print(f"bjets_df b4: \n {bjets_df.to_string()}")
+        # bjets_df = bjets_df.loc[:,bjets_bool]
+        bjets_df = filter_df_cols(bjets_df, cols_to_keep)
+        print(f"bjets_df after: \n {bjets_df.to_string()}")
 
-        return output
+        return bjets_df, jets_df
 
     def prepare_lookups(self):
         # self.jec_factories, self.jec_factories_data = jec_factories(self.year)
