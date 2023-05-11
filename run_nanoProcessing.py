@@ -20,8 +20,8 @@ import os
 # user_name = os.getcwd().split("/")[5]
 user_name = "yun79"
 # dask.config.set({"temporary-directory": f"/depot/cms/users/{user_name}/dask-temp/"})
-dask.config.set({"temporary-directory": f"/home/yun79/analysis/Zprime-Dilepton/test/"})
-global_path = os.getcwd() + "/output/"
+dask.config.set({"temporary-directory": f"/home/yun79/analysis/fork/Zprime-Dilepton/test/"})
+global_path = "/depot/cms/users/yun79/Zprime-Dilepton/output"
 parser = argparse.ArgumentParser()
 # Slurm cluster IP to use. If not specified, will create a local cluster
 parser.add_argument(
@@ -44,7 +44,7 @@ parser.add_argument(
     "-l",
     "--label",
     dest="label",
-    default="test_march",
+    default="test_may_bjet2_incl",
     action="store",
     help="Unique run label (to create output path)",
 )
@@ -52,6 +52,7 @@ parser.add_argument(
     "-ch",
     "--chunksize",
     dest="chunksize",
+    #default=100,
     default=100000,
     action="store",
     help="Approximate chunk size",
@@ -68,7 +69,7 @@ parser.add_argument(
     "-cl",
     "--channel",
     dest="channel",
-    default="mu",
+    default="emu",
     action="store",
     help="the flavor of the final state dilepton",
 )
@@ -76,7 +77,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-node_ip = "128.211.148.60"  # hammer-c000
+node_ip = "128.211.148.61"  # hammer-c000
 # node_ip = "128.211.149.135"
 # node_ip = "128.211.149.140"
 dash_local = f"{node_ip}:34875"
@@ -118,7 +119,7 @@ parameters = {
     "chunksize": int(args.chunksize),
     "maxchunks": mch,
     "save_output": True,
-    "local_cluster": True, # local_cluster
+    "local_cluster": local_cluster,
     "slurm_cluster_ip": slurm_cluster_ip,
     "client": None,
     "channel": args.channel,
@@ -202,8 +203,8 @@ def submit_job(parameters):
         maxchunks=parameters["maxchunks"],
     )
     
-    event_processor(**processor_args)
-    print("nano processor flag")
+    # event_processor(**processor_args)
+    
     try:
         run(
             parameters["samp_infos"].fileset,
@@ -215,6 +216,7 @@ def submit_job(parameters):
         tb = traceback.format_exc()
         return "Failed: " + str(e) + " " + tb
     # print("flag2")
+    print("nano processor flag")
     return "Success!"
 
 
@@ -225,10 +227,10 @@ if __name__ == "__main__":
         #     'test_file',
         # ],
         "other_mc": [
-            # "WZ1L1Nu2Q",
-            # "WZ3LNu",
+            "WZ1L1Nu2Q",
+            "WZ3LNu",
             # "WZ2L2Q",
-            # "ZZ2L2Nu",
+            "ZZ2L2Nu",
             # "ZZ2L2Q",
             # "ZZ4L",
             # "WWinclusive",
@@ -237,82 +239,82 @@ if __name__ == "__main__":
             # "WW1200to2500",
             # "WW2500toInf",
             # "ttbar_lep_inclusive",
-            "ttbar_lep_M500to800",
+            # "ttbar_lep_M500to800",
             # "ttbar_lep_M800to1200",
-            # "ttbar_lep_M1200to1800",
+            # # "ttbar_lep_M1200to1800",
             # "ttbar_lep_M1800toInf",
             # "Wantitop",
             # "tW",
         ],
         "dy": [
-            "dy0J_M200to400",
-            "dy0J_M400to800",
-            "dy0J_M800to1400",
-            "dy0J_M1400to2300",
-            "dy0J_M2300to3500",
-            "dy0J_M3500to4500",
-            "dy0J_M4500to6000",
-            "dy0J_M6000toInf",
-	    "dy1J_M200to400",
-            "dy1J_M400to800",
-            "dy1J_M800to1400",
-            "dy1J_M1400to2300",
-            "dy1J_M2300to3500",
-            "dy1J_M3500to4500",
-            "dy1J_M4500to6000",
-            "dy1J_M6000toInf",
-            "dy2J_M200to400",
-            "dy2J_M400to800",
-            "dy2J_M800to1400",
-            "dy2J_M1400to2300",
-            "dy2J_M2300to3500",
-            "dy2J_M3500to4500",
-            "dy2J_M4500to6000",
-            "dy2J_M6000toInf",
+            # "dy0J_M200to400",
+            # "dy0J_M400to800",
+            # "dy0J_M800to1400",
+            # "dy0J_M1400to2300",
+            # "dy0J_M2300to3500",
+            # "dy0J_M3500to4500",
+            # "dy0J_M4500to6000",
+            # "dy0J_M6000toInf",
+	        # "dy1J_M200to400",
+            # "dy1J_M400to800",
+            # "dy1J_M800to1400",
+            # "dy1J_M1400to2300",
+            # "dy1J_M2300to3500",
+            # "dy1J_M3500to4500",
+            # "dy1J_M4500to6000",
+            # "dy1J_M6000toInf",
+            # "dy2J_M200to400",
+            # "dy2J_M400to800",
+            # "dy2J_M800to1400",
+            # "dy2J_M1400to2300",
+            # "dy2J_M2300to3500",
+            # "dy2J_M3500to4500",
+            # "dy2J_M4500to6000",
+            # "dy2J_M6000toInf",
         ],
-        "CI": [
-            "bsll_lambda1TeV_M200to500",
-            "bsll_lambda1TeV_M500to1000",
-            "bsll_lambda1TeV_M1000to2000",
-            "bsll_lambda1TeV_M2000toInf",
-            "bsll_lambda2TeV_M200to500",
-            "bsll_lambda2TeV_M500to1000",
-            "bsll_lambda2TeV_M1000to2000",
-            "bsll_lambda2TeV_M2000toInf",
-            "bsll_lambda4TeV_M200to500",
-            "bsll_lambda4TeV_M500to1000",
-            "bsll_lambda4TeV_M1000to2000",
-            "bsll_lambda4TeV_M2000toInf",
-            "bsll_lambda8TeV_M200to500",
-            "bsll_lambda8TeV_M500to1000",
-            "bsll_lambda8TeV_M1000to2000",
-            "bsll_lambda8TeV_M2000toInf",
+        # "CI": [
+        #     # "bsll_lambda1TeV_M200to500",
+        #     # "bsll_lambda1TeV_M500to1000",
+        #     # "bsll_lambda1TeV_M1000to2000",
+        #     # "bsll_lambda1TeV_M2000toInf",
+        #     # "bsll_lambda2TeV_M200to500",
+        #     # "bsll_lambda2TeV_M500to1000",
+        #     # "bsll_lambda2TeV_M1000to2000",
+        #     # "bsll_lambda2TeV_M2000toInf",
+        #     # "bsll_lambda4TeV_M200to500",
+        #     # "bsll_lambda4TeV_M500to1000",
+        #     # "bsll_lambda4TeV_M1000to2000",
+        #     # "bsll_lambda4TeV_M2000toInf",
+        #     # "bsll_lambda8TeV_M200to500",
+        #     # "bsll_lambda8TeV_M500to1000",
+        #     # "bsll_lambda8TeV_M1000to2000",
+        #     # "bsll_lambda8TeV_M2000toInf",
  
-            #"bbll_6TeV_M1300To2000_negLL",
-            #"bbll_6TeV_M2000ToInf_negLL",
-            #"bbll_6TeV_M300To800_negLL",
-            #"bbll_6TeV_M800To1300_negLL",
-            #"bbll_10TeV_M1300To2000_negLL",
-            #"bbll_10TeV_M2000ToInf_negLL",
-            #"bbll_10TeV_M300To800_negLL",
-            #"bbll_10TeV_M800To1300_negLL",
-            #"bbll_14TeV_M1300To2000_negLL",
-            #"bbll_14TeV_M2000ToInf_negLL",
-            #"bbll_14TeV_M300To800_negLL",
-            #"bbll_14TeV_M800To1300_negLL",
-            #"bbll_18TeV_M1300To2000_negLL",
-            #"bbll_18TeV_M2000ToInf_negLL",
-            #"bbll_18TeV_M300To800_negLL",
-            #"bbll_18TeV_M800To1300_negLL",
-            #"bbll_22TeV_M1300To2000_negLL",
-            #"bbll_22TeV_M2000ToInf_negLL",
-            #"bbll_22TeV_M300To800_negLL",
-            #"bbll_22TeV_M800To1300_negLL",
-            #"bbll_24TeV_M1300To2000_negLL",
-            #"bbll_24TeV_M2000ToInf_negLL",
-            #"bbll_24TeV_M300To800_negLL",
-            #"bbll_24TeV_M800To1300_negLL",
-        ],
+        #     #"bbll_6TeV_M1300To2000_negLL",
+        #     #"bbll_6TeV_M2000ToInf_negLL",
+        #     #"bbll_6TeV_M300To800_negLL",
+        #     #"bbll_6TeV_M800To1300_negLL",
+        #     #"bbll_10TeV_M1300To2000_negLL",
+        #     #"bbll_10TeV_M2000ToInf_negLL",
+        #     #"bbll_10TeV_M300To800_negLL",
+        #     #"bbll_10TeV_M800To1300_negLL",
+        #     #"bbll_14TeV_M1300To2000_negLL",
+        #     #"bbll_14TeV_M2000ToInf_negLL",
+        #     #"bbll_14TeV_M300To800_negLL",
+        #     #"bbll_14TeV_M800To1300_negLL",
+        #     #"bbll_18TeV_M1300To2000_negLL",
+        #     #"bbll_18TeV_M2000ToInf_negLL",
+        #     #"bbll_18TeV_M300To800_negLL",
+        #     #"bbll_18TeV_M800To1300_negLL",
+        #     #"bbll_22TeV_M1300To2000_negLL",
+        #     #"bbll_22TeV_M2000ToInf_negLL",
+        #     #"bbll_22TeV_M300To800_negLL",
+        #     #"bbll_22TeV_M800To1300_negLL",
+        #     #"bbll_24TeV_M1300To2000_negLL",
+        #     #"bbll_24TeV_M2000ToInf_negLL",
+        #     #"bbll_24TeV_M300To800_negLL",
+        #     #"bbll_24TeV_M800To1300_negLL",
+        # ],
     }
     if parameters["year"] == "2018":
         smp["data"] = [
@@ -350,7 +352,7 @@ if __name__ == "__main__":
         # create local cluster
         parameters["client"] = Client(
             processes=True,
-            n_workers=1,
+            n_workers=24,
             # dashboard_address=dash_local,
             threads_per_worker=1,
             memory_limit="6GB",
@@ -377,10 +379,12 @@ if __name__ == "__main__":
             #    continue
 
             if group != "other_mc":
-               continue
-            #if sample not in ["data_A"]:
-            #    continue
-            #if group != "data":
+                continue
+            # if group != "dy":
+            #   continue
+#            if sample not in ["data_A"]:
+#               continue
+            # if group != "data":
             #    continue
             if group == "data":
                 datasets_data.append(sample)

@@ -8,21 +8,22 @@ import dask
 from dask.distributed import Client
 import dask.dataframe as dd
 
-from python.io import load_dataframe
+from copperhead.python.io import load_dataframe
 from doAnalysis.postprocessor import process_partitions
 
 from copperhead.config.mva_bins import mva_bins
 from config.variables import variables_lookup
+from pathlib import Path
 
 __all__ = ["dask"]
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "-y", "--years", nargs="+", help="Years to process", default=["2018"]
+    "-y", "--years", nargs="+", help="Years to process", default=["2016pre"]
 )
 parser.add_argument(
-    "-f", "--flavor", dest="flavor", help="lepton flavor", default="mu"
+    "-f", "--flavor", dest="flavor", help="lepton flavor", default="emu"
 )
 parser.add_argument(
     "-sl",
@@ -50,25 +51,27 @@ else:
 parameters = {
     # < general settings >
     "slurm_cluster_ip": slurm_cluster_ip,
-    "global_path": "/depot/cms/users/schul105/dilepton/Zprime-Dilepton/output/",
+    "global_path": "/depot/cms/users/yun79/Zprime-Dilepton/output", # input parquet file path
     "years": args.years,
     # "label": "moreKiller",
     # "label": "noGenWeight",
-    "label": "combinedTest",
+    "label": "test_may",
     "flavor": args.flavor,
-    "channels": ["inclusive", "0b", "1b", "2b"],
-    "regions": ["inclusive", "bb", "be"],
+    "channels": ["0b"],
+    # "channels": ["inclusive", "0b", "1b", "2b"],
+#    "regions": ["inclusive"],
+    "regions": ["bb", "be"], # be: barrel barrel. be: barrel endcap
     # "syst_variations": ["nominal"],
     # "syst_variations": ["nominal", "resUnc", "scaleUncUp", "scaleUncDown"],
     "syst_variations": [
         "nominal",
-        "btag_up",
-        "btag_down",
-        "recowgt_up",
-        "recowgt_down",
-        "resUnc",
-        "scaleUncUp",
-        "scaleUncDown",
+        #"btag_up",
+        #"btag_down",
+        #"recowgt_up",
+        #"recowgt_down",
+        #"resUnc",
+        #"scaleUncUp",
+        #"scaleUncDown",
     ],
     # "custom_npartitions": {
     #     "vbf_powheg_dipole": 1,
@@ -76,16 +79,25 @@ parameters = {
     #
     # < settings for histograms >
     "hist_vars": [
-        "min_bl_mass",
-        "min_b1l_mass",
-        "min_b2l_mass",
+    #    "min_bl_mass",
         "dilepton_mass",
-        "dilepton_mass_gen",
-        "njets",
-        "nbjets",
-        "dilepton_cos_theta_cs",
+    #    "dilepton_mass_gen",
+    #    "njets",
+    #    "nbjets",
+    #    "met",
+    #    "b1l1_dR",
+    #    "b1l2_dR",
+    #    "lb_angle",
+    #    "dilepton_dR",
+    #    "bjet1_pt",
+    #    "e1_pt",
+    #    "e2_pt",
+    #    "e1_eta",
+    #    "e2_eta",
+    #    "e1_phi",
+    #    "bjet1_eta",
     ],
-    "hist_vars_2d": [["dilepton_mass", "met"]],
+    "hist_vars_2d": [["dilepton_mass", "dilepton_pt"]],
     "variables_lookup": variables_lookup,
     "save_hists": True,
     #
@@ -103,85 +115,123 @@ parameters = {
     "mva_bins_original": mva_bins,
 }
 
+if args.flavor == "el":
+    parameters["hist_vars"] = [
+#        "min_bl_mass",
+        "dilepton_mass",
+#        "dilepton_mass_gen",
+#        "njets",
+#        "nbjets",
+#        #"dilepton_cos_theta_cs",
+#        "met",
+#        "lb_angle",
+#        "dilepton_dR",
+#        "b1l1_dR",
+#        "b1l2_dR",
+#        "bjet1_pt",
+#        "e1_pt",
+#        "e2_pt",
+#        "e1_eta",
+#        "e2_eta",
+#        "e1_phi",
+#        "bjet1_eta",
+
+    ]
+    parameters["hist_vars_2d"] = [["dilepton_mass","dilepton_pt"]]
+
 parameters["datasets"] = [
-    "data_A",
-    "data_B",
-    "data_C",
-    "data_D",
-    # "data_E",
-    # "data_F",
-    # "data_G",
-    # "data_H",
-#    "dy120to200",
-#    "dy200to400",
-#    "dy400to800",
-#    "dy800to1400",
-#    "dy1400to2300",
-#    "dy2300to3500",
-#    "dy3500to4500",
-#    "dy4500to6000",
-#    "dy6000toInf",
-    "dy0J_M200to400",
-    "dy0J_M400to800",
-    "dy0J_M800to1400",
-    "dy0J_M1400to2300",
-    "dy0J_M2300to3500",
-    "dy0J_M3500to4500",
-    "dy0J_M4500to6000",
-    "dy0J_M6000toInf",
-    "dy1J_M200to400",
-    "dy1J_M400to800",
-    "dy1J_M800to1400",
-    "dy1J_M1400to2300",
-    "dy1J_M2300to3500",
-    "dy1J_M3500to4500",
-    "dy1J_M4500to6000",
-    "dy1J_M6000toInf",
-    "dy2J_M200to400",
-    "dy2J_M400to800",
-    "dy2J_M800to1400",
-    "dy2J_M1400to2300",
-    "dy2J_M2300to3500",
-    "dy2J_M3500to4500",
-    "dy2J_M4500to6000",
-    "dy2J_M6000toInf",
-    "dyInclusive50",
-    "ttbar_lep_inclusive",
-    "ttbar_lep_M500to800",
-    "ttbar_lep_M800to1200",
-    "ttbar_lep_M1200to1800",
-    "ttbar_lep_M1800toInf",
-    "tW",
-    "Wantitop",
-    # "tW1",
-    # "Wantitop1",
-    # "tW2",
-    # "Wantitop2",
-    "WWinclusive",
-    "WW200to600",
-    "WW600to1200",
-    "WW1200to2500",
-    "WW2500toInf",
-    "WZ2L2Q",
-    "WZ3LNu",
-    "ZZ2L2Nu",
-    "ZZ4L",
+#    "data_A",
+#    "data_B",
+#    "data_C",
+#    "data_D",
+#
+    # "dy0J_M200to400",
+    # "dy0J_M400to800",
+    # "dy0J_M800to1400",
+    # "dy0J_M1400to2300",
+    # "dy0J_M2300to3500",
+    # "dy0J_M3500to4500",
+    # "dy0J_M4500to6000",
+    # "dy0J_M6000toInf",
+
+#    "dy1J_M200to400",
+#    "dy1J_M400to800",
+#    "dy1J_M800to1400",
+#    "dy1J_M1400to2300",
+#    "dy1J_M2300to3500",
+#    "dy1J_M3500to4500",
+#    "dy1J_M4500to6000",
+#    "dy1J_M6000toInf",
+#
+#    "dy2J_M200to400",
+#    "dy2J_M400to800",
+#    "dy2J_M800to1400",
+#    "dy2J_M1400to2300",
+#    "dy2J_M2300to3500",
+#    "dy2J_M3500to4500",
+#    "dy2J_M4500to6000",
+#    "dy2J_M6000toInf",
+
+#    "dyInclusive50",
+#    "ttbar_lep_inclusive",
+   "ttbar_lep_M500to800",
+#    "ttbar_lep_M800to1200",
+#    "ttbar_lep_M1200to1800",
+#    "ttbar_lep_M1800toInf",
+#    "tW",
+#    "Wantitop",
+#
+#    "WWinclusive",
+#    "WW200to600",
+#    "WW600to1200",
+#    "WW1200to2500",
+#    "WW2500toInf",
+#
+#    "WZ1L1Nu2Q",
+#    "WZ2L2Q",
+#    "WZ3LNu",
+#
+#    "ZZ2L2Q",  
+#    "ZZ2L2Nu",
+#    "ZZ4L",
+
+#    "bsll_lambda1TeV_M200to500",
+#    "bsll_lambda1TeV_M500to1000",
+#    "bsll_lambda1TeV_M1000to2000",
+#    "bsll_lambda1TeV_M2000toInf",
+#
+#    "bsll_lambda2TeV_M200to500",
+#    "bsll_lambda2TeV_M500to1000",
+#    "bsll_lambda2TeV_M1000to2000",
+#    "bsll_lambda2TeV_M2000toInf",
+#
+#    "bsll_lambda4TeV_M200to500",
+#    "bsll_lambda4TeV_M500to1000",
+#    "bsll_lambda4TeV_M1000to2000",
+#    "bsll_lambda4TeV_M2000toInf",
+#
+#    "bsll_lambda8TeV_M200to500",
+#    "bsll_lambda8TeV_M500to1000",
+#    "bsll_lambda8TeV_M1000to2000",
+#    "bsll_lambda8TeV_M2000toInf",
+
+
     # "bbll_4TeV_M1000_negLL",
     # "bbll_4TeV_M1000_negLR",
     # "bbll_4TeV_M1000_posLL",
     # "bbll_4TeV_M1000_posLR",
     # "bbll_4TeV_M400_negLL",
-    "bbll_4TeV_M400_negLR",
-    "bbll_4TeV_M400_posLL",
-    "bbll_4TeV_M400_posLR",
-    "bbll_8TeV_M1000_negLL",
-    "bbll_8TeV_M1000_negLR",
-    "bbll_8TeV_M1000_posLL",
-    "bbll_8TeV_M1000_posLR",
-    "bbll_8TeV_M400_negLL",
-    "bbll_8TeV_M400_negLR",
-    "bbll_8TeV_M400_posLL",
-    "bbll_8TeV_M400_posLR",
+#    "bbll_4TeV_M400_negLR",
+#    "bbll_4TeV_M400_posLL",
+#    "bbll_4TeV_M400_posLR",
+#    "bbll_8TeV_M1000_negLL",
+#    "bbll_8TeV_M1000_negLR",
+#    "bbll_8TeV_M1000_posLL",
+#    "bbll_8TeV_M1000_posLR",
+#    "bbll_8TeV_M400_negLL",
+#    "bbll_8TeV_M400_negLR",
+#    "bbll_8TeV_M400_posLL",
+#    "bbll_8TeV_M400_posLR",
 ]
 # using one small dataset for debugging
 # parameters["datasets"] = ["vbf_powheg_dipole"]
@@ -223,9 +273,13 @@ if __name__ == "__main__":
         for dataset in parameters["datasets"]:
             paths = glob.glob(
                 f"{parameters['global_path']}/"
-                f"{parameters['label']}/stage1_output_{parameters['flavor']}/{year}/"
+                f"{parameters['label']}/stage1_output_emu/{year}/"
                 f"{dataset}/*.parquet"
             )
+            print(f"paths: {paths}")
+            # path_check = Path(paths)
+            # if not path_check.is_file():
+            #     print(f"path: {paths} not found")
             all_paths[year][dataset] = paths
 
     # run postprocessing

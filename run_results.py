@@ -48,7 +48,7 @@ parameters = {
     "slurm_cluster_ip": slurm_cluster_ip,
     "years": args.years,
     "global_path": "/depot/cms/users/schul105/dilepton/Zprime-Dilepton/output/",
-    "label": "combinedTest",
+    "label": "test_may",
     "flavor": args.flavor,
     "channels": ["inclusive", "0b", "1b", "2b"],
     "regions": ["inclusive", "bb", "be"],
@@ -69,7 +69,7 @@ parameters = {
     "variables_lookup": variables_lookup,
     "save_plots": True,
     "plot_ratio": True,
-    "plots_path": "./plots/Dielectron/",
+    "plots_path": "./plots/emu/",
     "dnn_models": {},
     "bdt_models": {},
     #
