@@ -62,94 +62,88 @@ massBinningEE = (
 
 variables.append(
     Variable(
-        "dielectron_mass",
-        r"$m_{ee}$ [GeV]",
-        len(massBinningEE) - 1,
-        200,
-        4900,
-        1e-5,
-        1e5,
-        binning_=massBinningEE,
-        norm_to_bin_width_=True,
-    )
-)
-variables.append(
-    Variable(
         "dilepton_mass",
-        r"$m_{\mu\mu}$ [GeV]",
-        len(massBinningMuMu) - 1,
-        200,
-        4900,
+        r"$m_{emu}$ [GeV]",
+        118,
+        100,
+        6000,
         1e-5,
-        1e5,
-        binning_=massBinningMuMu,
-        norm_to_bin_width_=True,
+        1e8,
+        # norm_to_bin_width_=True,
     )
 )
+# variables.append(
+#     Variable(
+#         "dilepton_mass",
+#         r"$m_{\mu\mu}$ [GeV]",
+#         len(massBinningMuMu) - 1,
+#         200,
+#         4900,
+#         1e-5,
+#         1e5,
+#         binning_=massBinningMuMu,
+#         norm_to_bin_width_=True,
+#     )
+# )
 variables.append(
     Variable(
         "dilepton_mass_resUnc",
         r"$m_{\mu\mu}$ [GeV] (res. unc.)",
-        len(massBinningMuMu) - 1,
-        200,
-        4900,
+        118,
+        100,
+        6000,
         1e-5,
-        1e5,
-        binning_=massBinningMuMu,
-        norm_to_bin_width_=True,
+        1e8,
+        # norm_to_bin_width_=True,
     )
 )
 variables.append(
     Variable(
         "dilepton_mass_scaleUncUp",
         r"$m_{\mu\mu}$ [GeV] (scale unc. up)",
-        len(massBinningMuMu) - 1,
-        200,
-        4900,
+        118,
+        100,
+        6000,
         1e-5,
-        1e5,
-        binning_=massBinningMuMu,
-        norm_to_bin_width_=True,
+        1e8,
+        # norm_to_bin_width_=True,
     )
 )
 variables.append(
     Variable(
         "dilepton_mass_scaleUncDown",
         r"$m_{\mu\mu}$ [GeV] (scale unc. down)",
-        len(massBinningMuMu) - 1,
-        200,
-        4900,
+        118,
+        100,
+        6000,
         1e-5,
-        1e5,
-        binning_=massBinningMuMu,
-        norm_to_bin_width_=True,
+        1e8,
+        # norm_to_bin_width_=True,
     )
 )
 variables.append(
     Variable(
         "dilepton_mass_gen",
         r"generated $m_{\mu\mu}$ [GeV]",
-        len(massBinningMuMu) - 1,
-        200,
-        4900,
+        118,
+        100,
+        6000,
         1e-5,
-        1e5,
-        binning_=massBinningMuMu,
-        norm_to_bin_width_=True,
+        1e8,
+        # norm_to_bin_width_=True,
     )
 )
 
 variables.append(
     Variable(
-        "dielectron_mass_gen",
+        "dilepton_mass_gen",
         r"generated $m_{ee}$ [GeV]",
-        len(massBinningEE) - 1,
-        200,
-        4900,
+        118,
+        100,
+        6000,
         1e-5,
-        1e5,
-        binning_=massBinningEE,
-        norm_to_bin_width_=True,
+        1e8,
+        # norm_to_bin_width_=True,
     )
 )
 
