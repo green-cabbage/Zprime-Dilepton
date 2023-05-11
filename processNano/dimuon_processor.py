@@ -342,6 +342,8 @@ class DimuonProcessor(processor.ProcessorABC):
             if self.timer:
                 self.timer.add_checkpoint("back back angle calculation")
             print("flag")
+            print(f"mu1: {mu1.to_string()}")
+            print(f"mu2: {mu2.to_string()}")
             # --------------------------------------------------------#
             # Select events with muons passing leading pT cut
             # and trigger matching
@@ -356,7 +358,7 @@ class DimuonProcessor(processor.ProcessorABC):
             # --------------------------------------------------------#
             # Fill dimuon and muon variables
             # --------------------------------------------------------#
-            fill_muons(self, output, mu1, mu2, is_mc, self.year, weights)
+            # fill_muons(self, output, mu1, mu2, is_mc, self.year, weights)
 
         print("flag2")
         # ------------------------------------------------------------#
@@ -738,7 +740,11 @@ class DimuonProcessor(processor.ProcessorABC):
         bjet2 = bjets.groupby("entry").nth(1)
         bJets = [bjet1, bjet2]
         muons = [mu1, mu2]
+        print(f"mu1: {mu1}")
+        print(f"mu2: {mu2}")
+        print(f"output b4 fill bjets: \n {output.to_string()}")
         fill_bjets(output, variables, bJets, muons, is_mc=is_mc)
+        print(f"output after fill bjets: \n {output.to_string()}")
 
         jets = jets.sort_values(["entry", "pt"], ascending=[True, False])
         jet1 = jets.groupby("entry").nth(0)

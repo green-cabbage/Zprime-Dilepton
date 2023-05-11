@@ -73,7 +73,10 @@ def p4(obj, is_mc=True):
 
 
 def p4_sum(obj1, obj2, is_mc=True,eScale="Nominal"):
-
+    """
+    Adds two objects and provide the pair four vectors
+    -> useful for calculating dilepton pair four vector
+    """
     result = pd.DataFrame(
         index=obj1.index.union(obj2.index),
         columns=[
@@ -158,7 +161,7 @@ def p4_sum(obj1, obj2, is_mc=True,eScale="Nominal"):
             result.pz_gen += pz_gen_
             result.e_gen += e_gen_
 
-    result.pt = np.sqrt(result.py ** 2 + result.py ** 2)
+    result.pt = np.sqrt(result.px ** 2 + result.py ** 2)
     result.eta = np.arcsinh(result.pz / result.pt)
     result.phi = np.arctan2(result.py, result.px)
     result.mass = np.sqrt(

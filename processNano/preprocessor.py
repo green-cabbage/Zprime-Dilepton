@@ -71,6 +71,7 @@ def read_via_xrootd(server, path, from_das=False):
             command = f'dasgoclient --query=="file dataset={path}"'
     else:
         command = f"xrdfs {server} ls -R {path} | grep '.root'"
+    # print(f"command: {command}")    
     proc = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True
     )
@@ -80,6 +81,7 @@ def read_via_xrootd(server, path, from_das=False):
         print("    voms-proxy-init --voms cms")
         print("    source /cvmfs/cms.cern.ch/cmsset_default.sh")
     result = [server + r.rstrip().decode("utf-8") for r in result]
+    # print(f"result: {result}")
     return result
 
 
@@ -173,7 +175,7 @@ class SamplesInfo(object):
 
         if self.debug:
             all_files = [all_files[0]]
-
+        # print(f"all_files: {all_files}")
         sumGenWgts = 0
         nGenEvts = 0
         if use_dask:
@@ -244,6 +246,9 @@ class SamplesInfo(object):
     def finalize(self):
         if self.is_mc:
             N = self.metadata["sumGenWgts"]
+            # print(f"N:  {N}")
+            
+            # print(f"self.lumi: {self.lumi}")
             numevents = self.metadata["nGenEvts"]
             if isinstance(cross_sections[self.sample], dict):
                 xsec = cross_sections[self.sample][self.year]
@@ -253,6 +258,7 @@ class SamplesInfo(object):
                 self.lumi_weights[self.sample] = xsec * self.lumi / N
             else:
                 self.lumi_weights[self.sample] = 0
+            # print(f"xsec: \n {xsec}")
             return numevents
         else:
             return self.data_entries

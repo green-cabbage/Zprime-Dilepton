@@ -31,7 +31,7 @@ from processNano.jets import prepare_jets, btagSF
 import copy
 
 from processNano.muons import find_dimuon, fill_muons
-from processNano.utils import bbangle, delta_r
+from processNano.utils import bbangle, delta_r, p4_sum
 from processNano.emus import get_pair_inv_mass, fill_jets, fill_bjets
 
 from config.parameters import parameters, muon_branches, ele_branches, jet_branches
@@ -46,10 +46,17 @@ def filter_df_cols(df: pd_df, cols_to_keep: List[str]) -> pd_df:
     """
 
     bool_filter = ~df.columns.str.contains("") # all false, since we are using or operators
-    # print(f"bool_col: {bool_col}")
+    #print(f"bool_col: {bool_col}")
     for col in cols_to_keep:
         bool_filter = bool_filter | (df.columns.str.contains(col))
     return df.loc[:,bool_filter]
+
+def cutoff_col_str(df: pd_df, name: str):
+    """
+    cuts off specific name from df's columns if it exists
+    """
+    new_cols = [col.replace(name, '') for col in df.columns]
+    return df.rename(columns={df.columns[i]: new_cols[i] for i in range(len(new_cols))})
 
 class EmuProcessor(processor.ProcessorABC):
     def __init__(self, **kwargs):
@@ -64,7 +71,7 @@ class EmuProcessor(processor.ProcessorABC):
         self.do_btag = True
 
         if self.samp_info is None:
-            print("Samples info missing!")
+            # #print("Samples info missing!")
             return
 
         self._accumulator = processor.defaultdict_accumulator(int)
@@ -94,6 +101,7 @@ class EmuProcessor(processor.ProcessorABC):
             self.timer.update()
 
         # Dataset name (see definitions in config/datasets.py)
+        # #print(f"process flag")
         dataset = df.metadata["dataset"]
 
         is_mc = True
@@ -123,11 +131,11 @@ class EmuProcessor(processor.ProcessorABC):
         ele_branches_local = copy.copy(ele_branches)
 
         # calculate generated mass from generated particles using the coffea genParticles
-        print(f"is_mc: {is_mc}")
+        # #print(f"is_mc: {is_mc}")
         if is_mc:
             genPart = df.GenPart
-            print(f"genPart type: {type(genPart)}")
-            print(f"genPart: {len(genPart)}")
+            # #print(f"genPart type: {type(genPart)}")
+            # #print(f"genPart: {len(genPart)}")
             genPart = genPart[
                 (
                     (abs(genPart.pdgId) == 11) | abs(genPart.pdgId)
@@ -176,10 +184,10 @@ class EmuProcessor(processor.ProcessorABC):
             mask = np.ones(numevents, dtype=bool)
             genweight = df.genWeight
             weights.add_weight("genwgt", genweight)
-            print(f"dataset: {dataset}")
-            print(f"self.lumi_weights: {self.lumi_weights}")
-            print(f"type(weights): {type(weights)}")
-            print(f"self.parameters: {self.parameters}")
+            # #print(f"dataset: {dataset}")
+            # #print(f"self.lumi_weights: {self.lumi_weights}")
+            # #print(f"type(weights): {type(weights)}")
+            # #print(f"self.parameters: {self.parameters}")
             weights.add_weight("lumi", self.lumi_weights[dataset])
             if self.do_pu:
                 pu_wgts = pu_evaluator(
@@ -214,19 +222,21 @@ class EmuProcessor(processor.ProcessorABC):
             lumi_info_el = LumiMask(self.parameters["lumimask_UL_el"])
             mask_el = lumi_info_el(df.run, df.luminosityBlock)
             mask = mask_mu and mask_el
-        print(f"mask: {mask}")
+        # #print(f"mask: {mask}")
 
         # Apply HLT to both Data and MC
 
-        hlt = ak.to_pandas(df.HLT[self.parameters["mu_hlt"]+self.parameters["el_hlt"]])
-        # print(f"df.HLT: {df.HLT}")
-        # print(f'df.HLT[self.parameters["mu_hlt"]]: {df.HLT[self.parameters["mu_hlt"]]}')
-        # print(f"hlt b4: {hlt}")
-        # print(f'self.parameters["mu_hlt"]: {self.parameters["mu_hlt"]}')
-        # print(f'self.parameters["mu_hlt"]+self.parameters["el_hlt"]: {self.parameters["mu_hlt"]+self.parameters["el_hlt"]}')
-        hlt = hlt[self.parameters["mu_hlt"]+self.parameters["el_hlt"]].sum(axis=1)
-        # print(f"hlt after: {hlt}")
-        # print(f"len(hlt): {len(hlt)}")
+        # hlt = ak.to_pandas(df.HLT[self.parameters["mu_hlt"]+self.parameters["el_hlt"]])
+        hlt = ak.to_pandas(df.HLT[self.parameters["mu_hlt"]])
+        # #print(f"df.HLT: {df.HLT}")
+        # #print(f'df.HLT[self.parameters["mu_hlt"]]: {df.HLT[self.parameters["mu_hlt"]]}')
+        # #print(f"hlt b4: {hlt}")
+        # #print(f'self.parameters["mu_hlt"]: {self.parameters["mu_hlt"]}')
+        # #print(f'self.parameters["mu_hlt"]+self.parameters["el_hlt"]: {self.parameters["mu_hlt"]+self.parameters["el_hlt"]}')
+        # hlt = hlt[self.parameters["mu_hlt"]+self.parameters["el_hlt"]].sum(axis=1)
+        hlt = hlt[self.parameters["mu_hlt"]].sum(axis=1)
+        # #print(f"hlt after: {hlt}")
+        # #print(f"len(hlt): {len(hlt)}")
 
         if self.timer:
             self.timer.add_checkpoint("Applied HLT and lumimask")
@@ -282,8 +292,8 @@ class EmuProcessor(processor.ProcessorABC):
             output["r"] = None
             output["dataset"] = dataset
             output["year"] = int(self.year)
-            if dataset == "dyInclusive50":
-                muons = muons[muons.genPartFlav == 15]
+            # if dataset == "dyInclusive50":
+            #     muons = muons[muons.genPartFlav == 15]
             flags = ak.to_pandas(df.Flag)
             flags = flags[self.parameters["event_flags"]].product(axis=1)
             muons["pass_flags"] = True
@@ -292,7 +302,6 @@ class EmuProcessor(processor.ProcessorABC):
                     axis=1
                 )
             # Define baseline muon selection (applied to pandas DF!)
-            print("flag")
             muons["selection"] = (
                 (muons.pt_raw > self.parameters["muon_pt_cut"])
                 & (abs(muons.eta_raw) < self.parameters["muon_eta_cut"])
@@ -305,9 +314,9 @@ class EmuProcessor(processor.ProcessorABC):
                 )
                 & muons.pass_flags
             )
-            print(f"muons: {muons.to_string()}")
-            # print(f"muons['entry']: {muons['entry']}")
-            # print(f"muons['subentry']: {muons['subentry']}")
+            #print(f"muons: {muons.to_string()}")
+            #print(f"muons['entry']: {muons['entry']}")
+            #print(f"muons['subentry']: {muons['subentry']}")
 
             # # Find events with at least one good primary vertex
             # good_pv = ak.to_pandas(df.PV).npvsGood > 0
@@ -320,32 +329,32 @@ class EmuProcessor(processor.ProcessorABC):
             #     & good_pv
             # )
             # n_entries = muons.reset_index().groupby("entry")["subentry"].max()
-            # print(f"muons: \n {muons.to_string()}")
+            #print(f"muons: \n {muons.to_string()}")
             # # amandeep_sort =muons.sort_values(by="pt")
-            # # print(50*"-")
-            # # print(f"amandeep_sort: \n {amandeep_sort.to_string()}")
-            # print(50*"-")
+            # #print(50*"-")
+            # #print(f"amandeep_sort: \n {amandeep_sort.to_string()}")
+            #print(50*"-")
             # test = muons.reset_index().sort_values(by=["entry","pt"])
-            # print(f"test : \n {test.to_string()}")
+            #print(f"test : \n {test.to_string()}")
             # # now remove the rows with same entries but with lower pt vals
             # # this is done by droping duplicates of entries column, but 
             # # keeping the last row, which is sorted to have the highest pt
-            # print(50*"-")
+            #print(50*"-")
             # drop_test = test.drop_duplicates(subset=['entry'], keep='last')
-            # print(f"drop_test : \n {drop_test.to_string()}")
-            # print(50*"-")
-            # print(f"n_entries: \n {len(n_entries)}")
+            #print(f"drop_test : \n {drop_test.to_string()}")
+            #print(50*"-")
+            #print(f"n_entries: \n {len(n_entries)}")
             # cols_to_group = muons.reset_index().columns.values.tolist()
             # cols_to_group.remove("pt")
-            # print(f"cols_to_group: {cols_to_group}")
-            # print(f"muons.reset_index().groupby(cols_to_group): {muons.reset_index().groupby(cols_to_group)}")
+            #print(f"cols_to_group: {cols_to_group}")
+            #print(f"muons.reset_index().groupby(cols_to_group): {muons.reset_index().groupby(cols_to_group)}")
             # mupt = muons.reset_index().groupby(["entry"])["pt"].max().reset_index()
-            # print(50*"-")
-            # print(f"mupt: \n {mupt.to_string()}")
+            #print(50*"-")
+            #print(f"mupt: \n {mupt.to_string()}")
             # mupt = mupt.set_index("entry").sort_index()
-            # print(50*"-")
-            # print(f"new mupt: \n {mupt.to_string()}")
-            # print(f"new mupt length: \n {len(mupt)}")
+            #print(50*"-")
+            #print(f"new mupt: \n {mupt.to_string()}")
+            #print(f"new mupt length: \n {len(mupt)}")
             
             # nmuons = (
             #     muons[muons.selection]
@@ -353,20 +362,20 @@ class EmuProcessor(processor.ProcessorABC):
             #     .groupby("entry")["subentry"]
             #     .nunique()
             # )
-            # print(50*"-")
-            # print(f"nmuons: \n {nmuons.to_string()}")
+            #print(50*"-")
+            #print(f"nmuons: \n {nmuons.to_string()}")
 
             # pick particle on each entry with the highest pt val
-            print(f"muons b4: \n {muons.to_string()}")
+            #print(f"muons b4: \n {muons.to_string()}")
             muons = muons.reset_index().sort_values(by=["entry","pt"])
-            print(f"muons after sort: \n {muons.to_string()}")
+            #print(f"muons after sort: \n {muons.to_string()}")
             # now remove the rows with same entries but with lower pt vals
             # this is done by droping duplicates of entries column, but 
             # keeping the last row, which is sorted to have the highest pt
-            print(50*"-")
+            # #print(50*"-")
             muons = muons.drop_duplicates(subset=['entry'], keep='last').set_index("entry")
             # muons.drop(columns=["subentry"], inplace=True)
-            print(f"muons after drop: \n {muons.to_string()}")
+            #print(f"muons after drop: \n {muons.to_string()}")
 
             # --------------------------------------------------------#
             # Electron selection
@@ -381,7 +390,7 @@ class EmuProcessor(processor.ProcessorABC):
                 electrons.loc[electrons.idx == -1, "eta_gen"] = -999.0
                 electrons.loc[electrons.idx == -1, "phi_gen"] = -999.0
 
-            print("flag2")
+            # #print("flag2")
             # Apply event quality flag
             flags = ak.to_pandas(df.Flag)
             flags = flags[self.parameters["event_flags"]].product(axis=1)
@@ -392,9 +401,8 @@ class EmuProcessor(processor.ProcessorABC):
                 & (abs(electrons.eta) < self.parameters["electron_eta_cut"])
                 & (electrons[self.parameters["electron_id"]] > 0)
             )
-            print("flag3")
-            if dataset == "dyInclusive50":
-                electrons = electrons[electrons.genPartFlav == 15]
+            # if dataset == "dyInclusive50":
+            #     electrons = electrons[electrons.genPartFlav == 15]
             # # Count electrons
             # nelectrons = (
             #     electrons[electrons.selection]
@@ -406,18 +414,17 @@ class EmuProcessor(processor.ProcessorABC):
             #     output["el_event_selection"] = mask & (hlt > 0) & (nelectrons >= 2)
             # else:
             #     output["el_event_selection"] = mask & (hlt > 0) & (nelectrons >= 4)
-            print("flag4")
             # pick electorn particle on each entry with the highest pt val
-            print(f"electrons b4: \n {electrons.to_string()}")
+            #print(f"electrons b4: \n {electrons.to_string()}")
             electrons = electrons.reset_index().sort_values(by=["entry","pt"])
-            print(f"electrons after sort: \n {electrons.to_string()}")
+            #print(f"electrons after sort: \n {electrons.to_string()}")
             # now remove the rows with same entries but with lower pt vals
             # this is done by droping duplicates of entries column, but 
             # keeping the last row, which is sorted to have the highest pt
-            print(50*"-")
+            # #print(50*"-")
             electrons = electrons.drop_duplicates(subset=['entry'], keep='last').set_index("entry")
             # electrons.drop(columns=["subentry"], inplace=True)
-            print(f"electrons after drop: \n {electrons.to_string()}")
+            #print(f"electrons after drop: \n {electrons.to_string()}")
             
             
 
@@ -427,24 +434,24 @@ class EmuProcessor(processor.ProcessorABC):
 
 
             leptons = muons.join(electrons, how="outer", lsuffix='_mu', rsuffix='_el')
-            print(f"leptons: {leptons.to_string()}")
+            #print(f"leptons: {leptons.to_string()}")
             leptons.dropna(inplace=True) # drop na since both an electron and muon has to exist
-            print(f"leptons after dropna: {leptons.to_string()}")
+            #print(f"leptons after dropna: {leptons.to_string()}")
 
             # drop non opposite charge pairs
             leptons["charge cut"] = leptons["charge_mu"]*leptons["charge_el"] < 0 # if opposite charge, the product of two charges should be negative
-            print(f'leptons["charge cut"] : \n {leptons["charge cut"].to_string()}')
+            #print(f'leptons["charge cut"] : \n {leptons["charge cut"].to_string()}')
             leptons = leptons[leptons["charge cut"] ] # drop non opposite charge pairs
-            print(f"leptons after non OS charge drop: \n {leptons.to_string()}")
+            #print(f"leptons after non OS charge drop: \n {leptons.to_string()}")
             leptons.drop(columns=["charge cut"], inplace=True) # don't need it anymore
-            print(f"leptons after drop charge cut columns: \n {leptons.to_string()}")
+            #print(f"leptons after drop charge cut columns: \n {leptons.to_string()}")
             deta, dphi, dr = delta_r(leptons["eta_mu"], leptons["eta_el"], leptons["phi_mu"],leptons["phi_el"])
-            print(f"delta_r dr: \n {dr}")
+            # #print(f"delta_r dr: \n {dr}")
             leptons["dR cut"] = dr > 0.4
-            print(f'leptons["dR cut"] : \n {leptons["dR cut"].to_string()}')
+            #print(f'leptons["dR cut"] : \n {leptons["dR cut"].to_string()}')
             leptons = leptons[leptons["dR cut"] ]
             leptons.drop(columns=["dR cut"], inplace=True) # don't need it anymore
-            print(f"leptons after dR cut: \n {leptons.to_string()}")
+            #print(f"leptons after dR cut: \n {leptons.to_string()}")
             pair_inv_mass = get_pair_inv_mass(
                 leptons["mass_mu"],
                 leptons["mass_el"],
@@ -455,18 +462,19 @@ class EmuProcessor(processor.ProcessorABC):
                 leptons["phi_mu"],
                 leptons["phi_el"]
             )
-            print(f"pair inv mass: \n {pair_inv_mass}")
+            # #print(f"pair inv mass: \n {pair_inv_mass}")
             leptons["pair inv mass"] = pair_inv_mass
             # filter out unncessary columns
-            print(f"leptons b4 dropping unncessary columns: \n {leptons.to_string()}")
+            #print(f"leptons b4 dropping unncessary columns: \n {leptons.to_string()}")
             cols_to_keep = ["mass", "pt", "eta","phi"]
             leptons = filter_df_cols(leptons, cols_to_keep)
-            print(f"leptons after dropping unncessary columns: \n {leptons.to_string()}")
+            #print(f"leptons after dropping unncessary columns: \n {leptons.to_string()}")
+            leptons["dataset"] = dataset
+            
 
             # Selection complete
             if self.timer:
                 self.timer.add_checkpoint("Selected events and electrons")
-            
             
 
         # ------------------------------------------------------------#
@@ -477,7 +485,7 @@ class EmuProcessor(processor.ProcessorABC):
         # ------------------------------------------------------------#
         # Apply JEC, get JEC and JER variations
         # ------------------------------------------------------------#
-        print("jet selection starting")
+        # #print("jet selection starting")
         jets = df.Jet
        
         output.columns = pd.MultiIndex.from_product(
@@ -486,20 +494,21 @@ class EmuProcessor(processor.ProcessorABC):
 
         if self.timer:
             self.timer.add_checkpoint("Jet preparation & event weights")
-        print("jet selection starting2")
-        print(f"output.columns: {output.columns}")
-        # print(f"self.pt_variations: {self.pt_variations}")
-        print(f"df: {df}")
-        print(f"dataset: {dataset}")
-        # print(f"mu2: {mu2}")
-        # print(f"mu1: {mu1}")
-        print(f"jets: {jets}")
-        print(f"jets: {jets[0][0]}")
-        print(f"mask: {mask}")
-        print(f"weights: {weights}")
-        print(f"numevents: {numevents}")
-        print(f"jet_branches: {jet_branches}")
-        print(f"output.index: {output.index}")
+        # #print("jet selection starting2")
+        # #print(f"output.columns: {output.columns}")
+        # #print(f"output['dataset']: {output['dataset']}")
+        #print(f"self.pt_variations: {self.pt_variations}")
+        #print(f"df: {df}")
+        #print(f"dataset: {dataset}")
+        #print(f"mu2: {mu2}")
+        #print(f"mu1: {mu1}")
+        #print(f"jets: {jets}")
+        #print(f"jets: {jets[0][0]}")
+        #print(f"mask: {mask}")
+        #print(f"weights: {weights}")
+        #print(f"numevents: {numevents}")
+        #print(f"jet_branches: {jet_branches}")
+        #print(f"output.index: {output.index}")
         for v_name in self.pt_variations:
             # output_updated = self.jet_loop(
             #     v_name,
@@ -519,7 +528,7 @@ class EmuProcessor(processor.ProcessorABC):
             # )
             # if output_updated is not None:
             #     output = output_updated
-            bjets_df, jets_df = self.jet_loop(
+            leptons_updated = self.jet_loop(
                 v_name,
                 is_mc,
                 df,
@@ -535,140 +544,156 @@ class EmuProcessor(processor.ProcessorABC):
                 output.index
                 # output,
             )
+            # #print(f"leptons: \n {leptons.to_string()}")
+            # #print(f"leptons_updated: \n {leptons_updated.to_string()}")
+            if leptons_updated is not None:
+                leptons = leptons_updated
 
         if self.timer:
             self.timer.add_checkpoint("Computed event weights")
-        print(f"leptons b4 adding bjets and jets: \n {leptons.to_string()}")
-        leptons["rows to keep"] = True 
-        leptons = leptons.join(bjets_df, how="outer", lsuffix='', rsuffix='_bjets') 
-        leptons = leptons.join(jets_df, how="outer", lsuffix='', rsuffix='_jets') 
-        leptons["rows to keep"].fillna(False, inplace=True)
-        print(leptons["rows to keep"])
-        leptons = leptons[leptons["rows to keep"]] # only keep rows with lepton values
-        # leptons.dropna(inplace=True)
-        leptons.fillna(0, inplace=True) # this is to fill NaN values from bjet and jet dfs
-        leptons.drop(columns=["rows to keep"], inplace=True) # don't need it anymore
-        print(f"leptons after adding bjets and jets: \n {leptons.to_string()}")
+        # #print(f"leptons b4 adding bjets and jets: \n {leptons.to_string()}")
+        # leptons["rows to keep"] = True 
+        # leptons = leptons.join(bjets_df, how="outer", lsuffix='', rsuffix='_bjets') 
+        # leptons = leptons.join(jets_df, how="outer", lsuffix='', rsuffix='_jets') 
+        # leptons["rows to keep"].fillna(False, inplace=True)
+        #print(leptons["rows to keep"])
+        # leptons = leptons[leptons["rows to keep"]] # only keep rows with lepton values
+        # # leptons.dropna(inplace=True)
+        # leptons.fillna(0, inplace=True) # this is to fill NaN values from bjet and jet dfs
+        # leptons.drop(columns=["rows to keep"], inplace=True) # don't need it anymore
+        # #print(f"leptons after adding bjets and jets: \n {leptons.to_string()}")
 
-        print("jet selection flag 1")
         # ------------------------------------------------------------#
         # Fill outputs
         # ------------------------------------------------------------#
 
-        # output.loc[
-        #     ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)), "r"
-        # ] = "bb"
-        # output.loc[
-        #     ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)), "r"
-        # ] = "be"
+        # add the bb and be region in column 'r'
+        # bb represents both leptons in barrel region
+        # be represents either or both lepton pairs in endcap region
+        leptons['r'] = np.nan # fill in the columns
+        leptons['r'][
+            (np.abs(leptons["eta_mu"]) < 1.2) & (np.abs(leptons["eta_el"]) < 1.442)
+        ] = 'bb'
+        leptons['r'][
+            (np.abs(leptons["eta_mu"]) > 1.2) | (np.abs(leptons["eta_el"]) > 1.442)
+        ] = 'be'
 
-        output["year"] = int(self.year)
+        leptons["year"] = int(self.year)
+        # #print(f"leptons after selection is done: \n {leptons.to_string()}")
+        output = leptons
 
+        # #print(f"weights: \n {weights.df.to_string()}")
+        # #print(f"list(output.index.values): {list(output.index.values)}")
+        # weights.get_weight() returns a 1 dimensional np array
         for wgt in weights.df.columns:
+            # #print(f"wgt: {wgt}")
             if wgt == "pu_wgt_off":
-                output["pu_wgt"] = weights.get_weight(wgt)
+                output["pu_wgt"] = weights.get_weight(wgt)[list(output.index.values)]
             if wgt != "nominal":
-                output[f"wgt_{wgt}"] = weights.get_weight(wgt)
+                output[f"wgt_{wgt}"] = weights.get_weight(wgt)[list(output.index.values)]
 
-
+        # #print(f"leptons after adding weights: \n {leptons.to_string()}")
         if is_mc and "dy" in dataset and self.applykFac:
-            mass_bb = output[output["r"] == "bb"].dimuon_mass_gen.to_numpy()
-            mass_be = output[output["r"] == "be"].dimuon_mass_gen.to_numpy()
-            for key in output.columns:
-                if "wgt" not in key[0]:
-                    continue
-                output.loc[
-                    ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)),
-                    key[0],
-                ] = (
-                    output.loc[
-                        ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)),
-                        key[0],
-                    ]
-                    * kFac(mass_bb, "bb", "mu")
-                ).values
-                output.loc[
-                    ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)),
-                    key[0],
-                ] = (
-                    output.loc[
-                        ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)),
-                        key[0],
-                    ]
-                    * kFac(mass_be, "be", "mu")
-                ).values
-
+            mass_bb = output[output["r"] == "bb"].dilepton_mass_gen.to_numpy()
+            mass_be = output[output["r"] == "be"].dilepton_mass_gen.to_numpy()
+            # for key in output.columns:
+            #     if "wgt" not in key[0]:
+            #         continue
+            #     output.loc[
+            #         ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)),
+            #         key[0],
+            #     ] = (
+            #         output.loc[
+            #             ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)),
+            #             key[0],
+            #         ]
+            #         * kFac(mass_bb, "bb", "mu")
+            #     ).values
+            #     output.loc[
+            #         ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)),
+            #         key[0],
+            #     ] = (
+            #         output.loc[
+            #             ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)),
+            #             key[0],
+            #         ]
+            #         * kFac(mass_be, "be", "mu")
+            #     ).values
+        # #print("jet selection flag 2")
         if is_mc and "dy" in dataset and self.applyNNPDFWeight:
             mass_bb = output[output["r"] == "bb"].dimuon_mass_gen.to_numpy()
             mass_be = output[output["r"] == "be"].dimuon_mass_gen.to_numpy()
             leadingPt_bb = output[output["r"] == "bb"].mu1_pt_gen.to_numpy()
             leadingPt_be = output[output["r"] == "be"].mu1_pt_gen.to_numpy()
-            for key in output.columns:
-                if "wgt" not in key[0]:
-                    continue
-                output.loc[
-                    ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)),
-                    key[0],
-                ] = (
-                    output.loc[
-                        ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)),
-                        key[0],
-                    ]
-                    * NNPDFWeight(
-                        mass_bb, leadingPt_bb, "bb", "mu", float(self.year), DY=True
-                    )
-                ).values
-                output.loc[
-                    ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)),
-                    key[0],
-                ] = (
-                    output.loc[
-                        ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)),
-                        key[0],
-                    ]
-                    * NNPDFWeight(
-                        mass_be, leadingPt_be, "be", "mu", float(self.year), DY=True
-                    )
-                ).values
-        if is_mc and "ttbar" in dataset and self.applyNNPDFWeight:
-            mass_bb = output[output["r"] == "bb"].dimuon_mass_gen.to_numpy()
-            mass_be = output[output["r"] == "be"].dimuon_mass_gen.to_numpy()
-            leadingPt_bb = output[output["r"] == "bb"].mu1_pt_gen.to_numpy()
-            leadingPt_be = output[output["r"] == "be"].mu1_pt_gen.to_numpy()
-            for key in output.columns:
-                if "wgt" not in key[0]:
-                    continue
-                output.loc[
-                    ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)),
-                    key[0],
-                ] = (
-                    output.loc[
-                        ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)),
-                        key[0],
-                    ]
-                    * NNPDFWeight(
-                        mass_bb, leadingPt_bb, "bb", "mu", float(self.year), DY=False
-                    )
-                ).values
-                output.loc[
-                    ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)),
-                    key[0],
-                ] = (
-                    output.loc[
-                        ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)),
-                        key[0],
-                    ]
-                    * NNPDFWeight(
-                        mass_be, leadingPt_be, "be", "mu", float(self.year), DY=False
-                    )
-                ).values
+            # for key in output.columns:
+            #     if "wgt" not in key[0]:
+            #         continue
+            #     output.loc[
+            #         ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)),
+            #         key[0],
+            #     ] = (
+            #         output.loc[
+            #             ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)),
+            #             key[0],
+            #         ]
+            #         * NNPDFWeight(
+            #             mass_bb, leadingPt_bb, "bb", "mu", float(self.year), DY=True
+            #         )
+            #     ).values
+            #     output.loc[
+            #         ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)),
+            #         key[0],
+            #     ] = (
+            #         output.loc[
+            #             ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)),
+            #             key[0],
+            #         ]
+            #         * NNPDFWeight(
+            #             mass_be, leadingPt_be, "be", "mu", float(self.year), DY=True
+            #         )
+            #     ).values
+        # #print("jet selection flag 3")
+        # if is_mc and "ttbar" in dataset and self.applyNNPDFWeight:
+        #     mass_bb = output[output["r"] == "bb"].dilepton_mass_gen.to_numpy()
+        #     mass_be = output[output["r"] == "be"].dilepton_mass_gen.to_numpy()
+        #     leadingPt_bb = output[output["r"] == "bb"].mu1_pt_gen.to_numpy()
+        #     leadingPt_be = output[output["r"] == "be"].mu1_pt_gen.to_numpy()
+        #     for key in output.columns:
+        #         if "wgt" not in key[0]:
+        #             continue
+        #         output.loc[
+        #             ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)),
+        #             key[0],
+        #         ] = (
+        #             output.loc[
+        #                 ((abs(output.mu1_eta) < 1.2) & (abs(output.mu2_eta) < 1.2)),
+        #                 key[0],
+        #             ]
+        #             * NNPDFWeight(
+        #                 mass_bb, leadingPt_bb, "bb", "mu", float(self.year), DY=False
+        #             )
+        #         ).values
+        #         output.loc[
+        #             ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)),
+        #             key[0],
+        #         ] = (
+        #             output.loc[
+        #                 ((abs(output.mu1_eta) > 1.2) | (abs(output.mu2_eta) > 1.2)),
+        #                 key[0],
+        #             ]
+        #             * NNPDFWeight(
+        #                 mass_be, leadingPt_be, "be", "mu", float(self.year), DY=False
+        #             )
+        #         ).values
 
-        output = output.loc[output.event_selection, :]
-        output = output.reindex(sorted(output.columns), axis=1)
+        # #print("jet selection flag 4")
+        # output = output.loc[output.event_selection, :]
+        # output = output.reindex(sorted(output.columns), axis=1)
         output = output[output.r.isin(self.regions)]
-        output.columns = output.columns.droplevel("Variation")
+        # output.columns = output.columns.droplevel("Variation")
 
-        print("jet selection flag 2")
+        # #print("jet selection flag 5")
+        # #print(f"self.apply_to_output: {self.apply_to_output}")
         if self.timer:
             self.timer.add_checkpoint("Filled outputs")
             self.timer.summary()
@@ -677,6 +702,7 @@ class EmuProcessor(processor.ProcessorABC):
             return output
         else:
             self.apply_to_output(output)
+            # #print(f"self.accumulator.identity(): {self.accumulator.identity()}")
             return self.accumulator.identity()
 
     def jet_loop(
@@ -696,7 +722,7 @@ class EmuProcessor(processor.ProcessorABC):
         # output,
         indices
     ):
-        print("jet loop flag")
+        # #print("jet loop flag")
 
         if not is_mc and variation != "nominal":
             return
@@ -704,7 +730,7 @@ class EmuProcessor(processor.ProcessorABC):
         # variables = pd.DataFrame(index=output.index)
         variables = pd.DataFrame(index= indices)
         jet_branches_local = copy.copy(jet_branches)
-        print("jet loop flag2")
+        # #print("jet loop flag2")
         if is_mc:
             jets["pt_gen"] = jets.matched_gen.pt
             jets["eta_gen"] = jets.matched_gen.eta
@@ -741,9 +767,9 @@ class EmuProcessor(processor.ProcessorABC):
         #     .sum()
         #     .astype(bool)
         # )
-        print("jet loop flag3")
-        if self.timer:
-            self.timer.add_checkpoint("Clean jets from matched muons")
+        #print("jet loop flag3")
+        # if self.timer:
+        #     self.timer.add_checkpoint("Clean jets from matched muons")
 
         # Select particular JEC variation
         # if "_up" in variation:
@@ -762,14 +788,14 @@ class EmuProcessor(processor.ProcessorABC):
 
         # --- conversion from awkward to pandas --- #
         jets = ak.to_pandas(jets)
-        print(f"jets: \n {jets.to_string()}")
+        #print(f"jets: \n {jets.to_string()}")
 
         if jets.index.nlevels == 3:
             # sometimes there are duplicates?
             jets = jets.loc[pd.IndexSlice[:, :, 0], :]
             jets.index = jets.index.droplevel("subsubentry")
 
-        print("jet loop flag4")
+        # #print("jet loop flag4")
         # ------------------------------------------------------------#
         # Apply jetID
         # ------------------------------------------------------------#
@@ -780,7 +806,7 @@ class EmuProcessor(processor.ProcessorABC):
             names=["entry", "subentry"],
         )
 
-        print("jet loop flag5")
+        # #print(f"self.do_btag: {self.do_btag}")
 
         jets = jets.dropna()
         jets = jets.loc[:, ~jets.columns.duplicated()]
@@ -795,10 +821,13 @@ class EmuProcessor(processor.ProcessorABC):
                     .groupby("entry")
                     .prod()
                 )
+                # #print(f'variables["wgt_nominal"] 1: \n {variables["wgt_nominal"]}')
                 variables["wgt_nominal"] = variables["wgt_nominal"].fillna(1.0)
                 variables["wgt_nominal"] = variables[
                     "wgt_nominal"
                 ] * weights.get_weight("nominal")
+                # #print(f'weights.get_weight("nominal"): {weights.get_weight("nominal")}')
+                # #print(f'variables["wgt_nominal"] 2: \n {variables["wgt_nominal"]}')
                 variables["wgt_btag_up"] = (
                     jets.loc[jets.pre_selection == 1, "btag_sf_wp_up"]
                     .groupby("entry")
@@ -832,18 +861,20 @@ class EmuProcessor(processor.ProcessorABC):
             else:
                 variables["wgt_nominal"] = 1.0
 
-        jets["selection"] = 0
+        # #print(f"variables: \n {variables.to_string()}")
+
+        jets["selection"] = 0 # start with jet selection
         jets.loc[
             ((jets.pt > 30.0) & (abs(jets.eta) < 2.4) & (jets.jetId >= 2)),
             "selection",
         ] = 1
 
-        print(f"jets:\n  {jets.to_string()}")
+        #print(f"jets:\n  {jets.to_string()}")
 
         njets = jets.loc[:, "selection"].groupby("entry").sum()
         variables["njets"] = njets
 
-        jets["bselection"] = 0
+        jets["bselection"] = 0 # start with b jet selection
         jets.loc[
             (
                 (jets.pt > 30.0)
@@ -859,14 +890,14 @@ class EmuProcessor(processor.ProcessorABC):
 
         bjets = jets.query("bselection==1")
         bjets = bjets.sort_values(["entry", "pt"], ascending=[True, False])
-        print(f"bjets: \n {bjets.to_string()}")
+        #print(f"bjets: \n {bjets.to_string()}")
         bjet1 = bjets.groupby("entry").nth(0)
         bjet2 = bjets.groupby("entry").nth(1)
-        bjets_df = bjet1.join(bjet2, how="outer", lsuffix='_bjet1', rsuffix='_bjet2')
+        # bjets_df = bjet1.join(bjet2, how="outer", lsuffix='_bjet1', rsuffix='_bjet2')
         bJets = [bjet1, bjet2]
-        print(f"bjet1: \n {bjet1.to_string()}")
-        print(f"bjet2: \n {bjet2.to_string()}")
-        print(f"bjets_df: \n {bjets_df.to_string()}")
+        #print(f"bjet1: \n {bjet1.to_string()}")
+        #print(f"bjet2: \n {bjet2.to_string()}")
+        #print(f"bjets_df: \n {bjets_df.to_string()}")
         mu_col = []
         el_col = []
         for col in leptons.columns:
@@ -874,30 +905,46 @@ class EmuProcessor(processor.ProcessorABC):
                 mu_col.append(col)
             elif "_el" in col:
                 el_col.append(col)
-        print(f"mu_col: {mu_col}")
-        print(f"el_col: {el_col}")
+        # #print(f"mu_col: {mu_col}")
+        # #print(f"el_col: {el_col}")
         mu = leptons[mu_col]
         el = leptons[el_col]
-        print(f"mu: \n {mu.to_string()}")
-        print(f"el: \n {el.to_string()}")
+        # #print(f"mu: \n {mu.to_string()}")
+        # #print(f"el: \n {el.to_string()}")
+        # get rid of _mu and _el in column names
+        mu = cutoff_col_str(mu, "_mu")
+        el = cutoff_col_str(el, "_el")
+        # #print(f"mu after rename: \n {mu.to_string()}")
+        # #print(f"el after rename: \n {el.to_string()}")
+        # dilepton_df  = p4_sum(mu, el)
+        #print(f"dilepton_df : \n {dilepton_df.to_string()}")
         lepton_l = [mu, el]
-        print("jet loop flag6")
-        print(f"leptons b4 fill b_jets: \n {leptons.to_string()}")
+        #print("jet loop flag6")
+        #print(f"leptons b4 fill b_jets: \n {leptons.to_string()}")
+        # #print(f"variables b4 fill b_jets:\n  {variables.to_string()}")
         fill_bjets(leptons, variables, bJets, lepton_l, is_mc=is_mc)
-        print(f"leptons after fill b_jets: \n {leptons.to_string()}")
+        #print(f"leptons after fill b_jets: \n {leptons.to_string()}")
+        # #print(f"variables after fill b_jets: \n {variables.to_string()}")
 
         jets = jets.sort_values(["entry", "pt"], ascending=[True, False])
         jet1 = jets.groupby("entry").nth(0)
         jet2 = jets.groupby("entry").nth(1)
         jets_df = jet1.join(jet2, how="outer", lsuffix='_jet1', rsuffix='_jet2')
-        print(f"jet1: \n {jet1.to_string()}")
-        print(f"jet2: \n {jet2.to_string()}")
-        print(f"jets_df: \n {jets_df.to_string()}")
+        #print(f"jet1: \n {jet1.to_string()}")
+        #print(f"jet2: \n {jet2.to_string()}")
+        #print(f"jets_df: \n {jets_df.to_string()}")
         Jets = [jet1, jet2]
-        # print("jet loop flag7")
-        print(f"leptons b4 fill jets:\n  {leptons.to_string()}")
-        fill_jets(leptons, variables, Jets, is_mc=is_mc)
-        print(f"leptons after fill jets: \n {leptons.to_string()}")
+
+        # --------------------------------------------------------------#
+        # skip fill_jets since we're only interested in bjets
+        # --------------------------------------------------------------#
+
+        #print("jet loop flag7")
+        #print(f"variables b4 fill jets:\n  {variables.to_string()}")
+        # #print(f"leptons b4 fill jets:\n  {leptons.to_string()}")
+        # fill_jets(leptons, variables, Jets, is_mc=is_mc)
+        #print(f"variables after fill jets: \n {variables.to_string()}")
+        #print(f"leptons after fill jets: \n {leptons.to_string()}")
         if self.timer:
             self.timer.add_checkpoint("Filled jet variables")
 
@@ -908,24 +955,23 @@ class EmuProcessor(processor.ProcessorABC):
         # a jet may or may not be selected depending on pT variation.
 
         for key, val in variables.items():
-            print(f"key: {key}, val: {val}")
-            # output.loc[:, key] = val
+            #print(f"key: {key}, val: {val}")
+            leptons.loc[:, key] = val
 
         del df
         # del muons
         del jets
         del bjets
-        # del mu1
-        # del mu2
+
         # return output
-        cols_to_keep = ["mass", "pt", "eta","phi"]
-        print(f"bjets_df b4: \n {bjets_df.to_string()}")
-        bjets_df = filter_df_cols(bjets_df, cols_to_keep)
-        print(f"bjets_df after: \n {bjets_df.to_string()}")
-        jets_df = filter_df_cols(jets_df, cols_to_keep)
+        # cols_to_keep = ["mass", "pt", "eta","phi"]
+        # #print(f"bjets_df b4: \n {bjets_df.to_string()}")
+        # bjets_df = filter_df_cols(bjets_df, cols_to_keep)
+        # #print(f"bjets_df after: \n {bjets_df.to_string()}")
+        # jets_df = filter_df_cols(jets_df, cols_to_keep)
         
 
-        return bjets_df, jets_df
+        return leptons
 
     def prepare_lookups(self):
         # self.jec_factories, self.jec_factories_data = jec_factories(self.year)
