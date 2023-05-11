@@ -101,6 +101,7 @@ def make_histograms(df, var_name, year, dataset, regions, channels, npart, param
             & ((df["channel"] == channel) | (channel == "inclusive"))
             & (~((df.dataset == "ttbar_lep_inclusive") & (df.dilepton_mass_gen > 500)))
             & (~((df.dataset == "WWinclusive") & (df.dilepton_mass_gen > 200)))
+            & (df.bjet1_ll_dR == True)
         )
         data = df.loc[slicer, var_name]
         weight = df.loc[slicer, w]
