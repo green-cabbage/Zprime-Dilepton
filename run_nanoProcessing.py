@@ -44,7 +44,9 @@ parser.add_argument(
     "-l",
     "--label",
     dest="label",
-    default="test_may_bjet2_incl",
+    # default="test_may_bjet2_incl2",
+    # default="test_test",
+    default="test_test_el_pTcut53",
     action="store",
     help="Unique run label (to create output path)",
 )
@@ -77,7 +79,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-node_ip = "128.211.148.61"  # hammer-c000
+node_ip = "128.211.148.60"  # hammer-c000
 # node_ip = "128.211.149.135"
 # node_ip = "128.211.149.140"
 dash_local = f"{node_ip}:34875"
@@ -177,7 +179,7 @@ def submit_job(parameters):
         "apply_to_output": partial(save_stage1_output_to_parquet, out_dir=out_dir),
     }
 
-    # print(f'parameters["channel"]: {parameters["channel"]}')
+    print(f'parameters["channel"]: {parameters["channel"]}')
     if parameters["channel"] == "el":
         from processNano.dilepton_processor import DileptonProcessor as event_processor
     elif parameters["channel"] == "mu" :
@@ -204,7 +206,8 @@ def submit_job(parameters):
     )
     
     # event_processor(**processor_args)
-    
+    print("event_processor")
+    # print(f'parameters["samp_infos"].fileset: {parameters["samp_infos"].fileset}')
     try:
         run(
             parameters["samp_infos"].fileset,
@@ -213,6 +216,7 @@ def submit_job(parameters):
         )
 
     except Exception as e:
+        print(f"processor fail: {str(e)}")
         tb = traceback.format_exc()
         return "Failed: " + str(e) + " " + tb
     # print("flag2")
@@ -222,32 +226,37 @@ def submit_job(parameters):
 
 if __name__ == "__main__":
     tick = time.time()
+    # """
+    # NOTE: ttbar_lep_M1200to1800 completed, but didn't go all the
+    # way to 100% but stopped at 36 %
+    # WW600to1200 and  WW1200to2500 are not done even with setup.sh
+    # """ 
     smp = {
         # 'single_file': [
         #     'test_file',
         # ],
         "other_mc": [
-            "WZ1L1Nu2Q",
-            "WZ3LNu",
-            # "WZ2L2Q",
-            "ZZ2L2Nu",
+            # "WZ1L1Nu2Q",
+            # "WZ3LNu",
+            # "WZ2L2Q", # not done
+            # "ZZ2L2Nu", # not done
             # "ZZ2L2Q",
-            # "ZZ4L",
-            # "WWinclusive",
+            # "ZZ4L", # not done
+            # "WWinclusive", # not done
             # "WW200to600",
-            # "WW600to1200",
-            # "WW1200to2500",
+            # "WW600to1200", # not not done
+            # "WW1200to2500",# not not done
             # "WW2500toInf",
-            # "ttbar_lep_inclusive",
+            "ttbar_lep_inclusive", # not done
             # "ttbar_lep_M500to800",
-            # "ttbar_lep_M800to1200",
-            # # "ttbar_lep_M1200to1800",
+            # "ttbar_lep_M800to1200",# not done
+            # "ttbar_lep_M1200to1800",# done not not done
             # "ttbar_lep_M1800toInf",
-            # "Wantitop",
+            # "Wantitop",# not done
             # "tW",
         ],
         "dy": [
-            # "dy0J_M200to400",
+            "dy0J_M200to400",
             # "dy0J_M400to800",
             # "dy0J_M800to1400",
             # "dy0J_M1400to2300",
@@ -272,7 +281,7 @@ if __name__ == "__main__":
             # "dy2J_M4500to6000",
             # "dy2J_M6000toInf",
         ],
-        # "CI": [
+        "CI": [
         #     # "bsll_lambda1TeV_M200to500",
         #     # "bsll_lambda1TeV_M500to1000",
         #     # "bsll_lambda1TeV_M1000to2000",
@@ -314,7 +323,7 @@ if __name__ == "__main__":
         #     #"bbll_24TeV_M2000ToInf_negLL",
         #     #"bbll_24TeV_M300To800_negLL",
         #     #"bbll_24TeV_M800To1300_negLL",
-        # ],
+        ],
     }
     if parameters["year"] == "2018":
         smp["data"] = [
@@ -367,6 +376,8 @@ if __name__ == "__main__":
 
     for group, samples in smp.items():
         for sample in samples:
+            print(f"group: {group}")
+            print(f"sample: {sample}")
             # if sample not in blackList:
             #    continue
             # if "WWinclusive" not in sample:
@@ -392,7 +403,8 @@ if __name__ == "__main__":
                 datasets_mc.append(sample)
 
     timings = {}
-
+    print(f"datasets_mc: {datasets_mc}")
+    print(f"datasets_data: {datasets_data}")
     to_process = {"MC": datasets_mc, "DATA": datasets_data}
     for lbl, datasets in to_process.items():
         if len(datasets) == 0:
@@ -405,6 +417,7 @@ if __name__ == "__main__":
         parameters["samp_infos"] = load_samples(datasets, parameters)
         timings[f"load {lbl}"] = time.time() - tick1
         tick2 = time.time()
+        print(f"jobs submitted for : {lbl}")
         out = submit_job(parameters)
         timings[f"process {lbl}"] = time.time() - tick2
 

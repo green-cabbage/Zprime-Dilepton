@@ -96,6 +96,7 @@ class EmuProcessor(processor.ProcessorABC):
         self.prepare_lookups()
 
     def process(self, df):
+        print("emu processor")
         # Initialize timer
         if self.timer:
             self.timer.update()
@@ -134,8 +135,9 @@ class EmuProcessor(processor.ProcessorABC):
         # #print(f"is_mc: {is_mc}")
         if is_mc:
             genPart = df.GenPart
-            # #print(f"genPart type: {type(genPart)}")
+            print(f"genPart type: {type(genPart)}")
             # #print(f"genPart: {len(genPart)}")
+            # print(f"genPart : \n {genPart.to_string()}")
             genPart = genPart[
                 (
                     (abs(genPart.pdgId) == 11) | abs(genPart.pdgId)
@@ -184,7 +186,7 @@ class EmuProcessor(processor.ProcessorABC):
             mask = np.ones(numevents, dtype=bool)
             genweight = df.genWeight
             weights.add_weight("genwgt", genweight)
-            # #print(f"dataset: {dataset}")
+            print(f"dataset: {dataset}")
             # #print(f"self.lumi_weights: {self.lumi_weights}")
             # #print(f"type(weights): {type(weights)}")
             # #print(f"self.parameters: {self.parameters}")
@@ -227,7 +229,7 @@ class EmuProcessor(processor.ProcessorABC):
         # Apply HLT to both Data and MC
 
         # hlt = ak.to_pandas(df.HLT[self.parameters["mu_hlt"]+self.parameters["el_hlt"]])
-        hlt = ak.to_pandas(df.HLT[self.parameters["mu_hlt"]])
+        hlt = ak.to_pandas(df.HLT[self.parameters["mu_hlt"]]) # HLT for el doesn't exist, so just mu_HLT
         # #print(f"df.HLT: {df.HLT}")
         # #print(f'df.HLT[self.parameters["mu_hlt"]]: {df.HLT[self.parameters["mu_hlt"]]}')
         # #print(f"hlt b4: {hlt}")
@@ -302,6 +304,10 @@ class EmuProcessor(processor.ProcessorABC):
                     axis=1
                 )
             # Define baseline muon selection (applied to pandas DF!)
+            # print(f"muons.pass_flags: {muons.pass_flags}")
+            # Find events with at least one good primary vertex
+            good_pv = ak.to_pandas(df.PV).npvsGood > 0
+
             muons["selection"] = (
                 (muons.pt_raw > self.parameters["muon_pt_cut"])
                 & (abs(muons.eta_raw) < self.parameters["muon_eta_cut"])
@@ -312,7 +318,10 @@ class EmuProcessor(processor.ProcessorABC):
                     (muons.ptErr.values / muons.pt.values)
                     < self.parameters["muon_ptErr/pt"]
                 )
-                & muons.pass_flags
+                & muons.pass_flags # this is just true
+                & (hlt > 0)
+                & (flags > 0)
+                & good_pv
             )
             #print(f"muons: {muons.to_string()}")
             #print(f"muons['entry']: {muons['entry']}")
@@ -367,6 +376,7 @@ class EmuProcessor(processor.ProcessorABC):
 
             # pick particle on each entry with the highest pt val
             #print(f"muons b4: \n {muons.to_string()}")
+            muons = muons[muons["selection"]]
             muons = muons.reset_index().sort_values(by=["entry","pt"])
             #print(f"muons after sort: \n {muons.to_string()}")
             # now remove the rows with same entries but with lower pt vals
@@ -416,6 +426,7 @@ class EmuProcessor(processor.ProcessorABC):
             #     output["el_event_selection"] = mask & (hlt > 0) & (nelectrons >= 4)
             # pick electorn particle on each entry with the highest pt val
             #print(f"electrons b4: \n {electrons.to_string()}")
+            electrons = electrons[electrons["selection"]]
             electrons = electrons.reset_index().sort_values(by=["entry","pt"])
             #print(f"electrons after sort: \n {electrons.to_string()}")
             # now remove the rows with same entries but with lower pt vals
@@ -465,7 +476,7 @@ class EmuProcessor(processor.ProcessorABC):
             # #print(f"pair inv mass: \n {pair_inv_mass}")
             leptons["pair inv mass"] = pair_inv_mass
             # filter out unncessary columns
-            #print(f"leptons b4 dropping unncessary columns: \n {leptons.to_string()}")
+            print(f"leptons b4 dropping unncessary columns: \n {leptons.to_string()}")
             cols_to_keep = ["mass", "pt", "eta","phi"]
             leptons = filter_df_cols(leptons, cols_to_keep)
             #print(f"leptons after dropping unncessary columns: \n {leptons.to_string()}")
