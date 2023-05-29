@@ -518,9 +518,11 @@ def fill_bjets(output, variables, jets, leptons, is_mc=True):
     variables[f"bjet1_ll_dR"].fillna(True, inplace=True) # NaN exists for nbjets ==0, in which case, we don't need to worry about min dR
     # variables[f"bjet1_mb2_dR"] =  jet1["dR_eb1"]
     # print(f'variables["bjet1_ll_dR"]: {variables["bjet1_ll_dR"].to_string()}')
+    print(f"lepton1: \n {lepton1.to_string()}")
+    print(f"lepton2: \n {lepton2.to_string()}")
+    dileptons = p4_sum(lepton1, lepton2, is_mc=is_mc)
+    # print(f"dileptons: \n {dileptons.to_string()}")
 
-
-    dileptons = p4_sum(lepton1, lepton2)
     ll_columns = [
         "dilepton_mass",
         "dilepton_pt",
@@ -546,7 +548,8 @@ def fill_bjets(output, variables, jets, leptons, is_mc=True):
     #     "eta_gen",
     #     "phi_gen",
     # ]
-    
+    print("bjet with lepton p4_sums start")
+
     if njet > 0:
         # print(f"jet1: \n {jet1.to_string()}")
         # print(f"jet2: \n {jet2.to_string()}")
@@ -569,7 +572,7 @@ def fill_bjets(output, variables, jets, leptons, is_mc=True):
 
         lep1 = p4(lepton1, is_mc=is_mc)
         lep2 = p4(lepton2, is_mc=is_mc)
-        # print("bjet_flag6")
+        
         ml1 = p4_sum(jet1, lepton1, is_mc=is_mc)
         ml2 = p4_sum(jet1, lepton2, is_mc=is_mc)
         try:

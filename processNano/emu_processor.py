@@ -223,8 +223,10 @@ class EmuProcessor(processor.ProcessorABC):
             mask_mu = lumi_info_mu(df.run, df.luminosityBlock)
             lumi_info_el = LumiMask(self.parameters["lumimask_UL_el"])
             mask_el = lumi_info_el(df.run, df.luminosityBlock)
-            mask = mask_mu and mask_el
-        # #print(f"mask: {mask}")
+            # print(f"mask_mu: {mask_mu}")
+            # print(f"mask_el: {mask_el}")
+            mask = mask_mu & mask_el
+            # print(f"mask: {mask}")
 
         # Apply HLT to both Data and MC
 
@@ -303,6 +305,7 @@ class EmuProcessor(processor.ProcessorABC):
                 muons["pass_flags"] = muons[self.parameters["muon_flags"]].product(
                     axis=1
                 )
+            print(f"early muons: \n {muons.to_string()}")    
             # Define baseline muon selection (applied to pandas DF!)
             # print(f"muons.pass_flags: {muons.pass_flags}")
             # Find events with at least one good primary vertex
@@ -401,6 +404,7 @@ class EmuProcessor(processor.ProcessorABC):
                 electrons.loc[electrons.idx == -1, "phi_gen"] = -999.0
 
             # #print("flag2")
+            print(f"early electrons: \n {electrons.to_string()}")
             # Apply event quality flag
             flags = ak.to_pandas(df.Flag)
             flags = flags[self.parameters["event_flags"]].product(axis=1)
@@ -443,8 +447,9 @@ class EmuProcessor(processor.ProcessorABC):
 
             # Now join muons and electrons as one df
 
-
+            
             leptons = muons.join(electrons, how="outer", lsuffix='_mu', rsuffix='_el')
+            print(f"early leptons: \n {leptons.to_string()}")
             #print(f"leptons: {leptons.to_string()}")
             leptons.dropna(inplace=True) # drop na since both an electron and muon has to exist
             #print(f"leptons after dropna: {leptons.to_string()}")
@@ -481,6 +486,10 @@ class EmuProcessor(processor.ProcessorABC):
             leptons = filter_df_cols(leptons, cols_to_keep)
             #print(f"leptons after dropping unncessary columns: \n {leptons.to_string()}")
             leptons["dataset"] = dataset
+
+            # if leptons at the end is empty, then return nothing
+            print(f" leptons after selection: \n {leptons.to_string()}")
+            
             
 
             # Selection complete
@@ -539,6 +548,8 @@ class EmuProcessor(processor.ProcessorABC):
             # )
             # if output_updated is not None:
             #     output = output_updated
+            if leptons.empty:
+                continue
             leptons_updated = self.jet_loop(
                 v_name,
                 is_mc,
@@ -631,11 +642,11 @@ class EmuProcessor(processor.ProcessorABC):
             #         * kFac(mass_be, "be", "mu")
             #     ).values
         # #print("jet selection flag 2")
-        if is_mc and "dy" in dataset and self.applyNNPDFWeight:
-            mass_bb = output[output["r"] == "bb"].dimuon_mass_gen.to_numpy()
-            mass_be = output[output["r"] == "be"].dimuon_mass_gen.to_numpy()
-            leadingPt_bb = output[output["r"] == "bb"].mu1_pt_gen.to_numpy()
-            leadingPt_be = output[output["r"] == "be"].mu1_pt_gen.to_numpy()
+        # if is_mc and "dy" in dataset and self.applyNNPDFWeight:
+        #     mass_bb = output[output["r"] == "bb"].dimuon_mass_gen.to_numpy()
+        #     mass_be = output[output["r"] == "be"].dimuon_mass_gen.to_numpy()
+        #     leadingPt_bb = output[output["r"] == "bb"].mu1_pt_gen.to_numpy()
+        #     leadingPt_be = output[output["r"] == "be"].mu1_pt_gen.to_numpy()
             # for key in output.columns:
             #     if "wgt" not in key[0]:
             #         continue
@@ -704,16 +715,18 @@ class EmuProcessor(processor.ProcessorABC):
         # output.columns = output.columns.droplevel("Variation")
 
         # #print("jet selection flag 5")
-        # #print(f"self.apply_to_output: {self.apply_to_output}")
+        print(f"self.apply_to_output: {self.apply_to_output}")
         if self.timer:
             self.timer.add_checkpoint("Filled outputs")
             self.timer.summary()
 
         if self.apply_to_output is None:
+            print(f"at the end output: {output}")
             return output
         else:
+            print(f"end output: {output}")
             self.apply_to_output(output)
-            # #print(f"self.accumulator.identity(): {self.accumulator.identity()}")
+            print(f"self.accumulator.identity(): {self.accumulator.identity()}")
             return self.accumulator.identity()
 
     def jet_loop(
@@ -927,7 +940,7 @@ class EmuProcessor(processor.ProcessorABC):
         el = cutoff_col_str(el, "_el")
         # #print(f"mu after rename: \n {mu.to_string()}")
         # #print(f"el after rename: \n {el.to_string()}")
-        # dilepton_df  = p4_sum(mu, el)
+        # dilepton_df  = p4_sum(mu, el, is_mc=is_mc)
         #print(f"dilepton_df : \n {dilepton_df.to_string()}")
         lepton_l = [mu, el]
         #print("jet loop flag6")
