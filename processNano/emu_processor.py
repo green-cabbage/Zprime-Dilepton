@@ -305,7 +305,7 @@ class EmuProcessor(processor.ProcessorABC):
                 muons["pass_flags"] = muons[self.parameters["muon_flags"]].product(
                     axis=1
                 )
-            print(f"early muons: \n {muons.to_string()}")    
+            # print(f"early muons: \n {muons.to_string()}")    
             # Define baseline muon selection (applied to pandas DF!)
             # print(f"muons.pass_flags: {muons.pass_flags}")
             # Find events with at least one good primary vertex
@@ -404,7 +404,7 @@ class EmuProcessor(processor.ProcessorABC):
                 electrons.loc[electrons.idx == -1, "phi_gen"] = -999.0
 
             # #print("flag2")
-            print(f"early electrons: \n {electrons.to_string()}")
+            # print(f"early electrons: \n {electrons.to_string()}")
             # Apply event quality flag
             flags = ak.to_pandas(df.Flag)
             flags = flags[self.parameters["event_flags"]].product(axis=1)
@@ -449,7 +449,7 @@ class EmuProcessor(processor.ProcessorABC):
 
             
             leptons = muons.join(electrons, how="outer", lsuffix='_mu', rsuffix='_el')
-            print(f"early leptons: \n {leptons.to_string()}")
+            # print(f"early leptons: \n {leptons.to_string()}")
             #print(f"leptons: {leptons.to_string()}")
             leptons.dropna(inplace=True) # drop na since both an electron and muon has to exist
             #print(f"leptons after dropna: {leptons.to_string()}")
@@ -481,14 +481,14 @@ class EmuProcessor(processor.ProcessorABC):
             # #print(f"pair inv mass: \n {pair_inv_mass}")
             leptons["pair inv mass"] = pair_inv_mass
             # filter out unncessary columns
-            print(f"leptons b4 dropping unncessary columns: \n {leptons.to_string()}")
+            # print(f"leptons b4 dropping unncessary columns: \n {leptons.to_string()}")
             cols_to_keep = ["mass", "pt", "eta","phi"]
             leptons = filter_df_cols(leptons, cols_to_keep)
             #print(f"leptons after dropping unncessary columns: \n {leptons.to_string()}")
             leptons["dataset"] = dataset
 
             # if leptons at the end is empty, then return nothing
-            print(f" leptons after selection: \n {leptons.to_string()}")
+            # print(f" leptons after selection: \n {leptons.to_string()}")
             
             
 
@@ -615,9 +615,9 @@ class EmuProcessor(processor.ProcessorABC):
                 output[f"wgt_{wgt}"] = weights.get_weight(wgt)[list(output.index.values)]
 
         # #print(f"leptons after adding weights: \n {leptons.to_string()}")
-        if is_mc and "dy" in dataset and self.applykFac:
-            mass_bb = output[output["r"] == "bb"].dilepton_mass_gen.to_numpy()
-            mass_be = output[output["r"] == "be"].dilepton_mass_gen.to_numpy()
+        # if is_mc and "dy" in dataset and self.applykFac:
+        #     mass_bb = output[output["r"] == "bb"].dilepton_mass_gen.to_numpy()
+        #     mass_be = output[output["r"] == "be"].dilepton_mass_gen.to_numpy()
             # for key in output.columns:
             #     if "wgt" not in key[0]:
             #         continue
@@ -724,9 +724,9 @@ class EmuProcessor(processor.ProcessorABC):
             print(f"at the end output: {output}")
             return output
         else:
-            print(f"end output: {output}")
+            # print(f"end output: {output}")
             self.apply_to_output(output)
-            print(f"self.accumulator.identity(): {self.accumulator.identity()}")
+            # print(f"self.accumulator.identity(): {self.accumulator.identity()}")
             return self.accumulator.identity()
 
     def jet_loop(
