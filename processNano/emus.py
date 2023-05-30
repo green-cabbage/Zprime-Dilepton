@@ -23,8 +23,6 @@ def get_pair_inv_mass(mu_mass, el_mass, mu_pt, el_pt, mu_eta, el_eta, mu_phi, el
         - (py1_ + py2_) ** 2
         - (pz1_ + pz2_) ** 2
     )
-    # print(f"m2: {m2}")
-    # mass = np.sqrt(np.max(0, m2))
     m2[m2 < 0] = 0 # override negative values as zero
     mass = np.sqrt(m2)
     return mass
@@ -468,7 +466,6 @@ def fill_bjets(output, variables, jets, leptons, is_mc=True):
         "dilepton_eta_gen",
         "dilepton_phi_gen",
     ]
-    # print("bjet_flag")
     for v in variable_names:
         variables[v] = -999.0
     njet = len(jets)
@@ -483,15 +480,12 @@ def fill_bjets(output, variables, jets, leptons, is_mc=True):
 
     jet1["dR_mb1"] = dR_mb1 > 0.4
 
-    # jet1["dR_mb1"] = jet1["dR_mb1"].fillna(True) # if no bjets, we don't need to worry about min dR
 
     _,_,dR_eb1 = delta_r(jet1["eta"], lepton2["eta"], jet1["phi"], lepton2["phi"])
 
     jet1["dR_eb1"] = dR_eb1 > 0.4
 
-    # print(f'jet1["dR_eb1"]: {jet1["dR_eb1"].to_string()}')
 
-    # jet1["dR_eb1"] = jet1["dR_eb1"].fillna(True) # if no bjets, we don't need to worry about min dR
 
     # Fill single jet variables
     for v in [
@@ -513,15 +507,10 @@ def fill_bjets(output, variables, jets, leptons, is_mc=True):
             variables[f"bjet2_{v}"] = -999.0
     variables.bjet1_rap = rapidity(jet1)
     
-    # print(f'jet1[["dR_mb1", "dR_eb1"]]: {jet1[["dR_mb1", "dR_eb1"]].to_string()}')
     variables[f"bjet1_ll_dR"] =  jet1["dR_mb1"] & jet1["dR_eb1"]
     variables[f"bjet1_ll_dR"].fillna(True, inplace=True) # NaN exists for nbjets ==0, in which case, we don't need to worry about min dR
     # variables[f"bjet1_mb2_dR"] =  jet1["dR_eb1"]
-    # print(f'variables["bjet1_ll_dR"]: {variables["bjet1_ll_dR"].to_string()}')
-    # print(f"lepton1: \n {lepton1.to_string()}")
-    # print(f"lepton2: \n {lepton2.to_string()}")
     dileptons = p4_sum(lepton1, lepton2, is_mc=is_mc)
-    # print(f"dileptons: \n {dileptons.to_string()}")
 
     ll_columns = [
         "dilepton_mass",
@@ -536,7 +525,6 @@ def fill_bjets(output, variables, jets, leptons, is_mc=True):
     for col in ll_columns:
         dilep_col = col[len("dilepton_"):]
         variables[col] = dileptons[dilep_col]
-    # print(f"output: \n {output.to_string()}")
     # dileptons = output.loc[:, ll_columns]
     # dileptons.columns = [
     #     "mass",
@@ -548,11 +536,8 @@ def fill_bjets(output, variables, jets, leptons, is_mc=True):
     #     "eta_gen",
     #     "phi_gen",
     # ]
-    print("bjet with lepton p4_sums start")
 
     if njet > 0:
-        # print(f"jet1: \n {jet1.to_string()}")
-        # print(f"jet2: \n {jet2.to_string()}")
         bjet = p4(jet1, is_mc=is_mc)
         llj = p4_sum(dileptons, bjet, is_mc=is_mc)
         for v in [
@@ -583,12 +568,10 @@ def fill_bjets(output, variables, jets, leptons, is_mc=True):
             variables["b1l2_mass"] = ml2["mass"]
         except Exception:
             variables["b1l2_mass"] = 100000
-        # print("bjet_flag7")
         variables["min_b1l_mass"] = variables[["b1l1_mass", "b1l2_mass"]].min(axis=1)
         variables["min_b1l_mass"].fillna(0, inplace=True)
         variables["min_bl_mass"] = variables[["b1l1_mass", "b1l2_mass"]].min(axis=1)
         variables["min_bl_mass"].fillna(0, inplace=True)
-    # print("bjet_flag8")
     if njet > 1:
         bjet2 = p4(jet2, is_mc=is_mc) # NOTE: this line is sus -> need confirmation
         llj2 = p4_sum(dileptons, bjet2, is_mc=is_mc)
@@ -627,7 +610,6 @@ def fill_bjets(output, variables, jets, leptons, is_mc=True):
             ["b1l1_mass", "b1l2_mass", "b2l1_mass", "b2l2_mass"]
         ].min(axis=1)
         variables["min_bl_mass"].fillna(0, inplace=True)
-        # print("bjet_flag9")
         variables.bjet2_rap = rapidity(jet2)
         # Fill dijet variables
         jj = p4_sum(jet1, jet2, is_mc=is_mc)
@@ -654,7 +636,6 @@ def fill_bjets(output, variables, jets, leptons, is_mc=True):
             variables.bjet1_phi,
             variables.bjet2_phi,
         )
-        # print("bjet_flag10")
         # Fill dilepton-dibjet system variables
         jj_columns = [
             "bjj_pt",
@@ -696,7 +677,6 @@ def fill_bjets(output, variables, jets, leptons, is_mc=True):
                 variables[f"blljj_{v}"] = lljj[v]
             except Exception:
                 variables[f"blljj_{v}"] = -999.0
-    # print("bjet_flag11")
 
 
 # skip fill jets
