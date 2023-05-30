@@ -635,16 +635,14 @@ class EmuProcessor(processor.ProcessorABC):
         #             )
         #         ).values
 
-)
+
         output = output[output.r.isin(self.regions)]
 
-        print(f"self.apply_to_output: {self.apply_to_output}")
         if self.timer:
             self.timer.add_checkpoint("Filled outputs")
             self.timer.summary()
 
         if self.apply_to_output is None:
-            print(f"at the end output: {output}")
             return output
         else:
             self.apply_to_output(output)
