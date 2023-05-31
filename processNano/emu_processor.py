@@ -66,7 +66,7 @@ class EmuProcessor(processor.ProcessorABC):
         self.pt_variations = kwargs.pop("pt_variations", ["nominal"])
  
         self.year = self.samp_info.year
-        self.parameters = {k: v[self.year] for k, v in parameters.items()}
+        self.parameters = {k: v.get(self.year, None) for k, v in parameters.items()}
 
         self.do_btag = True
 
@@ -685,29 +685,49 @@ class EmuProcessor(processor.ProcessorABC):
                 "phi_gen",
             ]
 
+        print(f"type(jets): {type(jets)}")
+        print(f"jets.matched_muons : {jets.matched_muons}")
+        print(f"jets.matched_electrons : {jets.matched_electrons}")
         # if variation == "nominal":
         #    if self.do_jec:
         #        jet_branches_local += ["pt_jec", "mass_jec"]
         #    if is_mc and self.do_jerunc:
         #        jet_branches_local += ["pt_orig", "mass_orig"]
 
-        # Find jets that have selected muons within dR<0.4 from them
-        # matched_mu_pt = jets.matched_muons.pt
-        # matched_mu_iso = jets.matched_muons.pfRelIso04_all
-        # matched_mu_id = jets.matched_muons[self.parameters["muon_id"]]
-        # matched_mu_pass = (
-        #     (matched_mu_pt > self.parameters["muon_pt_cut"])
-        #     & (matched_mu_iso < self.parameters["muon_iso_cut"])
-        #     & matched_mu_id
-        # )
-        # clean = ~(
-        #     ak.to_pandas(matched_mu_pass)
-        #     .astype(float)
-        #     .fillna(0.0)
-        #     .groupby(level=[0, 1])
-        #     .sum()
-        #     .astype(bool)
-        # )
+        # ------------------------------------------------------------#
+        # Find jets that have selected muons and electrons bc
+        # jet clustering includes electrons and muons;
+        # so each of those will also appear in the jet collection. 
+        # With this cleaning we make sure that our leptons 
+        # are not inside a jet cone and there is not ambiguity 
+        # between the objects
+        # ------------------------------------------------------------#
+
+        matched_mu_pt = jets.matched_muons.pt
+        matched_mu_id = jets.matched_muons[self.parameters["muon_id"]]
+        matched_mu_pass = (
+            (matched_mu_pt > self.parameters["muon_pt_cut"])
+            & matched_mu_id
+        )
+        clean_mu = ~(
+            ak.to_pandas(matched_mu_pass)
+            .astype(float)
+            .fillna(0.0)
+            .groupby(level=[0, 1])
+            .sum()
+            .astype(bool)
+        )
+        matched_el_pt = jets.matched_electrons.pt
+        matched_el_id = jets.matched_electrons[self.parameters["electron_id"]]
+        matched_ele_pass = (
+            (matched_ele_pt > self.parameters["electron_pt_cut"]) &
+            matched_ele_id
+        )
+        clean_el = ~(ak.to_pandas(matched_ele_pass).astype(float).fillna(0.0)
+                  .groupby(level=[0, 1]).sum().astype(bool))
+
+        clean = clean_mu & clean_el
+
         #print("jet loop flag3")
         # if self.timer:
         #     self.timer.add_checkpoint("Clean jets from matched muons")
@@ -796,10 +816,21 @@ class EmuProcessor(processor.ProcessorABC):
             else:
                 variables["wgt_nominal"] = 1.0
 
+        jets["HEMVeto"] = 1
+        jets.loc[
+            (
+                (jets.pt >= 20.0)
+                & (jets.eta >= -3.0)
+                & (jets.eta <= -1.3)
+                & (jets.phi >= -1.57)
+                & (jets.phi <= -0.87)
+            ),
+            "HEMVeto",
+        ] = 0
 
         jets["selection"] = 0 # start with jet selection
         jets.loc[
-            ((jets.pt > 30.0) & (abs(jets.eta) < 2.4) & (jets.jetId >= 2)),
+            ((jets.pt > 20.0) & (abs(jets.eta) < 2.4) & (jets.jetId >= 2) & (jets.HEMVeto >= parameters["2018HEM_veto"][self.year])),
             "selection",
         ] = 1
 
@@ -810,10 +841,11 @@ class EmuProcessor(processor.ProcessorABC):
         jets["bselection"] = 0 # start with b jet selection
         jets.loc[
             (
-                (jets.pt > 30.0)
+                (jets.pt > 20.0)
                 & (abs(jets.eta) < 2.4)
                 & (jets.btagDeepFlavB > parameters["UL_btag_medium"][self.year])
                 & (jets.jetId >= 2)
+                & (jets.HEMVeto >= parameters["2018HEM_veto"][self.year])
             ),
             "bselection",
         ] = 1
