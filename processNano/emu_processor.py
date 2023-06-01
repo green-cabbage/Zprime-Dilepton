@@ -717,8 +717,8 @@ class EmuProcessor(processor.ProcessorABC):
             .sum()
             .astype(bool)
         )
-        matched_el_pt = jets.matched_electrons.pt
-        matched_el_id = jets.matched_electrons[self.parameters["electron_id"]]
+        matched_ele_pt = jets.matched_electrons.pt
+        matched_ele_id = jets.matched_electrons[self.parameters["electron_id"]]
         matched_ele_pass = (
             (matched_ele_pt > self.parameters["electron_pt_cut"]) &
             matched_ele_id
