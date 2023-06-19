@@ -119,14 +119,52 @@ sample17+=(${other_mc17[@]})
 sample17+=(${higgs_17[@]})
 sample17+=(${triboson_17[@]})
 
-# dy3=( $(dasgoclient --query="dataset = /DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
+# for 2016, only higgs and triboson
 
-# dy4=( $(dasgoclient --query="dataset = /DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+# Higgs
+higgs_16_post=( $(dasgoclient --query="dataset = /TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
+higgs_16_post+=( $(dasgoclient --query="dataset = /TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
+higgs_16_post+=( $(dasgoclient --query="dataset = /ttHJetTobb_M125_TuneCP5_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
+higgs_16_post+=( $(dasgoclient --query="dataset = /ttHJetToNonbb_M125_TuneCP5_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
+higgs_16_post+=( $(dasgoclient --query="dataset = /GluGluHToZZTo4L_M125_TuneCP5_13TeV_powheg2_JHUGenV7011_pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v2/NANOAODSIM"))
+higgs_16_post+=( $(dasgoclient --query="dataset = /VBF_HToZZTo4L_M125_TuneCP5_13TeV_powheg2_JHUGenV7011_pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v2/NANOAODSIM"))
+higgs_16_post+=( $(dasgoclient --query="dataset = /ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
+higgs_16_post+=( $(dasgoclient --query="dataset = /ggZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
+higgs_16_post+=( $(dasgoclient --query="dataset = /ttH_HToZZ_4LFilter_M125_TuneCP5_13TeV_powheg2_JHUGenV7011_pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
+higgs_16_post+=( $(dasgoclient --query="dataset = /GluGluHToZZTo2L2Q_M125_TuneCP5_13TeV_powheg2_JHUGenV7011_pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v2/NANOAODSIM"))
+higgs_16_post+=( $(dasgoclient --query="dataset = /ZH_HToZZ_4LFilter_M125_TuneCP5_13TeV_powheg2-minlo-HZJ_JHUGenV7011_pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v2/NANOAODSIM"))
 
+# Triboson
+triboson_16_post=( $(dasgoclient --query="dataset = /WWW_4F_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
+triboson_16_post+=( $(dasgoclient --query="dataset = /WWZ_4F_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIMSIM"))
+triboson_16_post+=( $(dasgoclient --query="dataset = /WZZ_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
+triboson_16_post+=( $(dasgoclient --query="dataset = /ZZZ_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
 
-# dy1+=(${dy2[@]})
-# dy1+=(${dy3[@]})
-# dy1+=(${dy4[@]})
+sample16_post=(${higgs_16_post[@]})
+sample16_post+=(${triboson_16_post[@]})
+
+# Higgs
+higgs_16_pre=( $(dasgoclient --query="dataset = /TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v2/NANOAODSIM"))
+higgs_16_pre+=( $(dasgoclient --query="dataset = /TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+higgs_16_pre+=( $(dasgoclient --query="dataset = /ttHJetTobb_M125_TuneCP5_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+higgs_16_pre+=( $(dasgoclient --query="dataset = /ttHJetToNonbb_M125_TuneCP5_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+higgs_16_pre+=( $(dasgoclient --query="dataset = /GluGluHToZZTo4L_M125_TuneCP5_13TeV_powheg2_JHUGenV7011_pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+higgs_16_pre+=( $(dasgoclient --query="dataset = /VBF_HToZZTo4L_M125_TuneCP5_13TeV_powheg2_JHUGenV7011_pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+higgs_16_pre+=( $(dasgoclient --query="dataset = /ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+higgs_16_pre+=( $(dasgoclient --query="dataset = /ggZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+higgs_16_pre+=( $(dasgoclient --query="dataset = /ttH_HToZZ_4LFilter_M125_TuneCP5_13TeV_powheg2_JHUGenV7011_pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+higgs_16_pre+=( $(dasgoclient --query="dataset = /GluGluHToZZTo2L2Q_M125_TuneCP5_13TeV_powheg2_JHUGenV7011_pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+higgs_16_pre+=( $(dasgoclient --query="dataset = /ZH_HToZZ_4LFilter_M125_TuneCP5_13TeV_powheg2-minlo-HZJ_JHUGenV7011_pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+
+# Triboson
+triboson_16_pre=( $(dasgoclient --query="dataset = /WWW_4F_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+triboson_16_pre+=( $(dasgoclient --query="dataset = /WWZ_4F_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+triboson_16_pre+=( $(dasgoclient --query="dataset = /WZZ_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+triboson_16_pre+=( $(dasgoclient --query="dataset = /ZZZ_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"))
+
+sample16_pre=(${higgs_16_pre[@]})
+sample16_pre+=(${triboson_16_pre[@]})
+
 
 echo "sample 2018 start"
 
@@ -148,4 +186,26 @@ do
   
 done
 
-echo "total number of 2018 samples: ${#sample17[@]}"
+echo "total number of 2017 samples: ${#sample17[@]}"
+
+echo "sample 2016 post start"
+
+for i in "${sample16_post[@]}"
+do
+   echo "$i"
+   # rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER cms:$i
+  
+done
+
+echo "total number of 2016 post samples: ${#sample16_post[@]}"
+
+echo "sample 2016 pre start"
+
+for i in "${sample16_pre[@]}"
+do
+   echo "$i"
+   # rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER cms:$i
+  
+done
+
+echo "total number of 2016 pre samples: ${#sample16_pre[@]}"
