@@ -11,7 +11,7 @@ export RUCIO_ACCOUNT=`whoami`
 
 echo "adding rucio container"
 
-# rucio add-container user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER
+rucio add-container user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD3/USER
 
 
 # gather data, starting with muon data
@@ -136,7 +136,7 @@ higgs_16_post+=( $(dasgoclient --query="dataset = /ZH_HToZZ_4LFilter_M125_TuneCP
 
 # Triboson
 triboson_16_post=( $(dasgoclient --query="dataset = /WWW_4F_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
-triboson_16_post+=( $(dasgoclient --query="dataset = /WWZ_4F_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIMSIM"))
+triboson_16_post+=( $(dasgoclient --query="dataset = /WWZ_4F_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
 triboson_16_post+=( $(dasgoclient --query="dataset = /WZZ_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
 triboson_16_post+=( $(dasgoclient --query="dataset = /ZZZ_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"))
 
@@ -171,7 +171,7 @@ echo "sample 2018 start"
 for i in "total number of 2018 samples: ${sample18[@]}"
 do
    echo "$i"
-   # rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER cms:$i
+   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD3/USER cms:$i
   
 done
 
@@ -182,7 +182,7 @@ echo "sample 2017 start"
 for i in "${sample17[@]}"
 do
    echo "$i"
-   # rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER cms:$i
+   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD3/USER cms:$i
   
 done
 
@@ -193,7 +193,7 @@ echo "sample 2016 post start"
 for i in "${sample16_post[@]}"
 do
    echo "$i"
-   # rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER cms:$i
+   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD3/USER cms:$i
   
 done
 
@@ -204,7 +204,7 @@ echo "sample 2016 pre start"
 for i in "${sample16_pre[@]}"
 do
    echo "$i"
-   # rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER cms:$i
+   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD3/USER cms:$i
   
 done
 
