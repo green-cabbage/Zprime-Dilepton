@@ -11,11 +11,11 @@ export RUCIO_ACCOUNT=`whoami`
 
 echo "adding rucio container"
 
-rucio add-container user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER
+# rucio add-container user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER
 
 
-# gather data
-data18=( $(dasgoclient --query="dataset = /SingleMuon/Run2018*-UL2018_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD")) # add muon data
+# gather data, starting with muon data
+data18=( $(dasgoclient --query="dataset = /SingleMuon/Run2018*-UL2018_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD")) 
 
 dy18=( $(dasgoclient --query="dataset = /DYJetsToLL_*J_MLL_*_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18*NanoAOD*v9*/NANOAODSIM"))
 dy18+=( $(dasgoclient --query="dataset = /DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM"))
@@ -65,8 +65,14 @@ sample18+=(${higgs_18[@]})
 sample18+=(${triboson_18[@]})
 
 
-# gather data
-data17=( $(dasgoclient --query="dataset = /SingleMuon/Run2017*-UL2017_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD")) # add muon data
+# gather data, starting with muon data
+data17=( $(dasgoclient --query="dataset = /SingleMuon/Run2017B-UL2017_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD")) 
+data17+=( $(dasgoclient --query="dataset = /SingleMuon/Run2017C-UL2017_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD")) 
+data17+=( $(dasgoclient --query="dataset = /SingleMuon/Run2017D-UL2017_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD")) 
+data17+=( $(dasgoclient --query="dataset = /SingleMuon/Run2017E-UL2017_MiniAODv2_NanoAODv9_GT36-v2/NANOAOD")) 
+data17+=( $(dasgoclient --query="dataset = /SingleMuon/Run2017F-UL2017_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD")) 
+data17+=( $(dasgoclient --query="dataset = /SingleMuon/Run2017G-UL2017_MiniAODv2_NanoAODv9_GT36-v2/NANOAOD")) 
+data17+=( $(dasgoclient --query="dataset = /SingleMuon/Run2017H-UL2017_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD")) 
 # data17+=( $(dasgoclient --query="dataset = /DoubleEG/Run2017*-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD")) # add electron data
 
 dy17=( $(dasgoclient --query="dataset = /DYJetsToLL_*J_MLL_*_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL17*NanoAOD*v9*/NANOAODSIM"))
@@ -108,8 +114,8 @@ triboson_17+=( $(dasgoclient --query="dataset = /ZZZ_TuneCP5_13TeV-amcatnlo-pyth
 
 
 sample17=(${data17[@]})
-# sample17+=(${dy17[@]})
-# sample17+=(${other_mc17[@]})
+sample17+=(${dy17[@]})
+sample17+=(${other_mc17[@]})
 sample17+=(${higgs_17[@]})
 sample17+=(${triboson_17[@]})
 
@@ -127,7 +133,7 @@ echo "sample 2018 start"
 for i in "total number of 2018 samples: ${sample18[@]}"
 do
    echo "$i"
-   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER cms:$i
+   # rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER cms:$i
   
 done
 
@@ -138,7 +144,7 @@ echo "sample 2017 start"
 for i in "${sample17[@]}"
 do
    echo "$i"
-   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER cms:$i
+   # rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD/USER cms:$i
   
 done
 
