@@ -11,7 +11,7 @@ export RUCIO_ACCOUNT=`whoami`
 
 echo "adding rucio container"
 
-rucio add-container user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD3/USER
+rucio add-container user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD4/USER
 
 
 # gather data, starting with muon data
@@ -168,21 +168,21 @@ sample16_pre+=(${triboson_16_pre[@]})
 
 echo "sample 2018 start"
 
-for i in "total number of 2018 samples: ${sample18[@]}"
+for i in "${sample18[@]}"
 do
    echo "$i"
-   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD3/USER cms:$i
+   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD4/USER cms:$i
   
 done
 
-echo "${#sample18[@]}"
+echo "total number of 2018 samples: ${#sample18[@]}"
 
 echo "sample 2017 start"
 
 for i in "${sample17[@]}"
 do
    echo "$i"
-   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD3/USER cms:$i
+   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD4/USER cms:$i
   
 done
 
@@ -193,7 +193,7 @@ echo "sample 2016 post start"
 for i in "${sample16_post[@]}"
 do
    echo "$i"
-   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD3/USER cms:$i
+   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD4/USER cms:$i
   
 done
 
@@ -204,7 +204,7 @@ echo "sample 2016 pre start"
 for i in "${sample16_pre[@]}"
 do
    echo "$i"
-   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD3/USER cms:$i
+   rucio attach user.hyeonseo:/Analyses/zprimebjets_DYMCInclusive_NanoAOD4/USER cms:$i
   
 done
 
