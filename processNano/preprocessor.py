@@ -4,6 +4,7 @@ import glob
 import tqdm
 
 import uproot
+uproot.open.defaults["xrootd_handler"] = uproot.MultithreadedXRootDSource
 
 from config.parameters import parameters
 from config.parameters import lumis
@@ -13,6 +14,7 @@ import time
 
 def load_sample(dataset, parameters):
     xrootd = not (dataset == "test_file")
+    # print(f"xrootd: {xrootd}")
     args = {
         "year": parameters["year"],
         "out_path": parameters["out_path"],
@@ -60,6 +62,7 @@ def load_samples(datasets, parameters):
         samp_info_total.metadata.update(si.metadata)
         samp_info_total.lumi_weights.update(si.lumi_weights)
         samp_info_total.samples.append(si.sample)
+    print(f"samp_info_total: {samp_info_total}")
     return samp_info_total
 
 
@@ -100,7 +103,7 @@ class SamplesInfo(object):
                 if "2018" in self.year:
                     self.parameters.update({k: v["2018"]})
                 else:
-                    self.parameters.update({k: v[self.year]})
+                    self.parameters.update({k: v.get(self.year, None)})
             except Exception:
                 print(k, v)
         self.is_mc = True
@@ -113,11 +116,11 @@ class SamplesInfo(object):
         self.paths = datasets[self.year]
 
         if "mu" in datasets_from:
-            self.lumi = lumis[self.year][1]
+            self.lumi = lumis[self.year][0] # using golden sample
         elif "emu" in datasets_from:
-            self.lumi = lumis[self.year][1]
+            self.lumi = lumis[self.year][0] # using golden sample
         else:
-            self.lumi = lumis[self.year][0]
+            self.lumi = lumis[self.year][0] # using golden sample
 
         #if "2016" in self.year:
         #    self.lumi = 35900.0

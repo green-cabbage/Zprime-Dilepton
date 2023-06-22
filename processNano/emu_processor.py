@@ -857,6 +857,7 @@ class EmuProcessor(processor.ProcessorABC):
         bjets = bjets.sort_values(["entry", "pt"], ascending=[True, False])
         #print(f"bjets: \n {bjets.to_string()}")
         bjet1 = bjets.groupby("entry").nth(0)
+        bjet1 = bjet1.loc[(bjet1.btagDeepFlavB > parameters["UL_btag_tight"][self.year])]
         bjet2 = bjets.groupby("entry").nth(1)
         bJets = [bjet1, bjet2]
 
