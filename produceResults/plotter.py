@@ -10,6 +10,10 @@ from produceResults.io import load_stage2_output_hists_2D
 import matplotlib.pyplot as plt
 import mplhep as hep
 from matplotlib.colors import LogNorm
+import inspect
+
+print("plotter inspect:")
+print(inspect.getmodule(load_stage2_output_hists).__name__)
 
 style = hep.style.CMS
 style["mathtext.fontset"] = "cm"
@@ -89,8 +93,11 @@ def plotter(client, parameters, hist_df=None, timer=None):
             "var_name": parameters["plot_vars"],
             "dataset": parameters["datasets"],
         }
+        # print(f"arg_load: {arg_load}")
+        # print(f"parameters: {parameters}")
         hist_dfs = parallelize(load_stage2_output_hists, arg_load, client, parameters)
         hist_df = pd.concat(hist_dfs).reset_index(drop=True)
+        # print(f"hist_df after plotter: \n {hist_df.to_string()}")
         if hist_df.shape[0] == 0:
             print("Nothing to plot!")
             return []
@@ -105,7 +112,8 @@ def plotter(client, parameters, hist_df=None, timer=None):
         "df": [hist_df],
     }
     yields = parallelize(plot, arg_plot, client, parameters, seq=True)
-
+    # print(f"arg_plot: {arg_plot}")
+    # print(f"yields: {yields}")
     return yields
 
 
@@ -148,7 +156,11 @@ def plot(args, parameters={}):
     region = args["region"]
     channel = args["channel"]
     var_name = args["var_name"]
+    # print(f"var_name: {var_name}")
+    # print(f'parameters["variables_lookup"].keys(): {parameters["variables_lookup"].keys()}')
     hist = args["df"].loc[(args["df"].var_name == var_name) & (args["df"].year == year)]
+    # print(f"hist.shape: {hist.shape}")
+    # print(f"plot fcn hist: \n {hist.to_string()}")
 
     if var_name in parameters["variables_lookup"].keys():
         var = parameters["variables_lookup"][var_name]
@@ -188,12 +200,15 @@ def plot(args, parameters={}):
     entries = {et: Entry(et, parameters) for et in parameters["plot_groups"].keys()}
 
     total_yield = 0
+    # print(f"variation: {variation}")
     for wgt in variation:
         slicer = {"region": region, "channel": channel, "variation": wgt}
+        # print(f"slicer: {slicer}")
         for entry in entries.values():
             if len(entry.entry_list) == 0:
                 continue
             plottables_df = get_plottables(hist, entry, year, var_name, slicer)
+            print(f"plottables_df: \n {plottables_df.to_string()}")
             plottables = plottables_df["hist"].values.tolist()
             sumw2 = plottables_df["sumw2"].values.tolist()
             labels = plottables_df["label"].values.tolist()
@@ -371,6 +386,7 @@ def plot(args, parameters={}):
         fig.savefig(out_name)
         print(f"Saved: {out_name}")
 
+    # print(f"total_yield: {total_yield}")
     return total_yield
 
 
@@ -530,14 +546,27 @@ def get_plottables(hist, entry, year, var_name, slicer):
     slicer_value["val_sumw2"] = "value"
     slicer_sumw2["val_sumw2"] = "sumw2"
 
+    # print(f"entry.groups: {entry.groups}")
     plottables_df = pd.DataFrame(columns=["label", "hist", "sumw2", "integral"])
     for group in entry.groups:
         group_entries = [e for e, g in entry.entry_dict.items() if (group == g)]
+        # print(f"group_entries: {group_entries}")
 
         hist_values_group = []
         hist_sumw2_group = []
 
         for h in hist.loc[hist.dataset.isin(group_entries), "hist"].values:
+            # print(f"h: {h}")
+            # print(f"len(h.axes): {len(h.axes)}")
+            # for idx in range(len(h.axes)):
+            #     axis = h.axes[idx]
+            #     print(f"{idx} th h axis name: {axis.name}")
+            # print(f"h.values().shape: {h.values().shape}")
+            # print(f"slicer_value: {slicer_value}")
+            # print(f"h[slicer_value]: {h[slicer_value]}")
+            # print(f"type(h[slicer_value]): {type(h[slicer_value])}")
+            # slicer_value.pop('dilepton_mass', None)
+            # print(f"h[slicer_value].project(var_name).sum(): \n {h[slicer_value].project(var_name).sum()}")
             if not pd.isna(h[slicer_value].project(var_name).sum()):
                 hist_values_group.append(h[slicer_value].project(var_name))
                 hist_sumw2_group.append(h[slicer_sumw2].project(var_name))

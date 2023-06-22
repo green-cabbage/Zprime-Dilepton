@@ -165,6 +165,7 @@ def load_stage2_output_hists(argset, parameters):
     path = f"{global_path}/{label}/stage2_histograms_{parameters['flavor']}/{var_name}/{year}/"
     paths = glob.glob(f"{path}/{dataset}_*.pickle") + glob.glob(f"{path}.pickle")
     hist_df = pd.DataFrame()
+    # print(f"paths: \n {paths}")
     for path in paths:
         try:
             with open(path, "rb") as handle:
@@ -179,6 +180,8 @@ def load_stage2_output_hists(argset, parameters):
                 hist_df.reset_index(drop=True, inplace=True)
         except Exception:
             pass
+    if not hist_df.empty:
+        print(f"hist_df: \n {hist_df.to_string()}")
     return hist_df
 
 
