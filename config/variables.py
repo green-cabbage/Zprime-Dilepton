@@ -34,30 +34,44 @@ class Variable(object):
 
 variables = []
 
+# massBinningMuMu = (
+#     [j for j in range(120, 150, 5)]
+#     + [j for j in range(150, 200, 10)]
+#     + [j for j in range(200, 600, 20)]
+#     + [j for j in range(600, 900, 30)]
+#     + [j for j in range(900, 1250, 50)]
+#     + [j for j in range(1250, 1610, 60)]
+#     + [j for j in range(1610, 1890, 70)]
+#     + [j for j in range(1890, 3970, 80)]
+#     + [j for j in range(3970, 6070, 100)]
+#     + [6070]
+# )
+
+# massBinningEE = (
+#     [j for j in range(120, 150, 5)]
+#     + [j for j in range(150, 200, 10)]
+#     + [j for j in range(200, 600, 20)]
+#     + [j for j in range(600, 900, 30)]
+#     + [j for j in range(900, 1250, 50)]
+#     + [j for j in range(1250, 1610, 60)]
+#     + [j for j in range(1610, 1890, 70)]
+#     + [j for j in range(1890, 3970, 80)]
+#     + [j for j in range(3970, 6070, 100)]
+#     + [6070]
+# )
+
 massBinningMuMu = (
     [j for j in range(120, 150, 5)]
     + [j for j in range(150, 200, 10)]
-    + [j for j in range(200, 600, 20)]
-    + [j for j in range(600, 900, 30)]
-    + [j for j in range(900, 1250, 50)]
-    + [j for j in range(1250, 1610, 60)]
-    + [j for j in range(1610, 1890, 70)]
-    + [j for j in range(1890, 3970, 80)]
-    + [j for j in range(3970, 6070, 100)]
-    + [6070]
+    + [j for j in range(200, 500, 20)]
+    + [500]
 )
 
 massBinningEE = (
     [j for j in range(120, 150, 5)]
     + [j for j in range(150, 200, 10)]
-    + [j for j in range(200, 600, 20)]
-    + [j for j in range(600, 900, 30)]
-    + [j for j in range(900, 1250, 50)]
-    + [j for j in range(1250, 1610, 60)]
-    + [j for j in range(1610, 1890, 70)]
-    + [j for j in range(1890, 3970, 80)]
-    + [j for j in range(3970, 6070, 100)]
-    + [6070]
+    + [j for j in range(200, 500, 20)]
+    + [500]
 )
 
 variables.append(
@@ -66,7 +80,7 @@ variables.append(
         r"$m_{emu}$ [GeV]",
         118,
         100,
-        6000,
+        500,#6000
         1e-5,
         1e8,
         # norm_to_bin_width_=True,
@@ -184,6 +198,10 @@ variables.append(
 variables.append(
     Variable("e2_pt", r"e_{2) p_T [GeV]",100, 0, 500, 1e-5, 1e5)
 )   
+variables.append(
+    Variable("pt_mu", r"\mu p_T [GeV]",100, 0, 200, 1e-5, 1e5)
+)
+
   
 variables_lookup = {}
 for v in variables:

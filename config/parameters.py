@@ -4,6 +4,7 @@ def for_all_years(value):
     return out
 
 parameters = {}
+# for lumis, the 0th element is golden sample, the 1th element is muonphys
 lumis = {"2016pre": [19.12*1000,19.29*1000], "2016post": [16.81*1000, 17.01*1000], "2017": [41.48*1000,42.02*1000], "2018": [59.83*1000,61.31*1000]}
 parameters["lumimask_Pre-UL_mu"] = {
     "2016": "data/lumimasks/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON_MuonPhys.txt",
@@ -16,18 +17,18 @@ parameters["lumimask_UL_el"] = {
     "2016pre": "data/lumimasks/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
     "2016post": "data/lumimasks/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
     "2017": "data/lumimasks/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt",
-    "2018": "data/lumimasks/UL18_json_GoldenJson.txt",
+    "2018": "data/lumimasks/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt",
 }
 parameters["lumimask_UL_mu"] = {
-    "2016preVFP": "data/lumimasks/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON_MuonPhys.txt",
-    "2016postVFP": "data/lumimasks/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON_MuonPhys.txt",
-    "2017": "data/lumimasks/Cert_294927-306462_13TeV_UL2017_Collisions17_MuonJSON.txt",
-    "2018": "data/lumimasks/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON_MuonPhys.txt",
+    "2016pre": "data/lumimasks/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
+    "2016post": "data/lumimasks/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
+    "2017": "data/lumimasks/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt",
+    "2018": "data/lumimasks/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt",
 }
 
 parameters["mu_hlt"] = {
     "2016": ["Mu50", "TkMu50"],
-    "2017": ["Mu50", "TkMu100", "OldMu100"],
+    "2017": ["Mu50", "TkMu100", "OldMu100"], # this may have to be changed
     "2018": ["Mu50", "TkMu100", "OldMu100"],
 }
 
